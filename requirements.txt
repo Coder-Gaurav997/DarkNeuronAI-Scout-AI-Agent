@@ -1,0 +1,8 @@
+exa-py
+groq
+google-genai
+flask
+flask-cors
+supabase
+dnspython
+gunicorn
