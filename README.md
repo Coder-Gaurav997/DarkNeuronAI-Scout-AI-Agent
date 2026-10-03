@@ -1,15 +1,3 @@
----
-title: DarkNeuronAI's Scout
-emoji: 🛰️
-colorFrom: purple
-colorTo: pink
-sdk: docker
-app_port: 7860
-pinned: false
-license: mit
-short_description: Autonomous research & report generation AI agent
----
-
 # 🛰️ DarkNeuronAI's Scout
 
 > **Autonomous Research & Report Generation AI Agent**
