@@ -1,6 +1,6 @@
 # app.py
 """
-DarkNeuronAI's Scout — Backend Server
+DarkNeuronAI Scout — Backend Server
 -------------------------------------
 Streams real-time pipeline status via Server-Sent Events (SSE).
 """
