@@ -296,6 +296,66 @@
   }
   .home-screen.hidden{transform:translateY(-70px) scale(.96);opacity:0;filter:blur(10px);pointer-events:none}
 
+  /* ===================== GLASS CARD (HOME ONLY) ===================== */
+  .glass-card{
+    position:relative;
+    width:100%;
+    max-width:820px;
+    padding:3.25rem 2.75rem 2.5rem;
+    border-radius:36px;
+    display:flex;flex-direction:column;align-items:center;
+    text-align:center;
+    overflow:hidden;
+    isolation:isolate;
+    background:
+      linear-gradient(140deg,
+        rgba(255,255,255,.62) 0%,
+        rgba(255,255,255,.30) 38%,
+        rgba(255,255,255,.44) 65%,
+        rgba(255,255,255,.58) 100%);
+    backdrop-filter:blur(26px) saturate(170%);
+    -webkit-backdrop-filter:blur(26px) saturate(170%);
+    border:1.5px solid rgba(255,255,255,.70);
+    box-shadow:
+      0 24px 64px -18px rgba(70,30,110,.22),
+      0 4px 16px rgba(0,0,0,.05),
+      inset 0 1px 0 rgba(255,255,255,.90),
+      inset 0 -1px 0 rgba(255,255,255,.35);
+    animation:fadeUp .8s .02s cubic-bezier(.22,1,.36,1) both;
+  }
+  .glass-card::before{
+    content:'';
+    position:absolute;
+    inset:-30% -15% -30% -15%;
+    z-index:-1;
+    pointer-events:none;
+    filter:blur(8px);
+    background:
+      radial-gradient(ellipse 42% 50% at 14% 10%, rgba(255,150,215,.42) 0%, transparent 62%),
+      radial-gradient(ellipse 42% 50% at 88% 6%,  rgba(150,180,255,.40) 0%, transparent 62%),
+      radial-gradient(ellipse 52% 58% at 72% 106%, rgba(190,150,255,.38) 0%, transparent 66%),
+      radial-gradient(ellipse 38% 48% at 4% 96%,  rgba(255,180,210,.32) 0%, transparent 62%);
+  }
+  body.dark .glass-card{
+    background:linear-gradient(140deg,
+      rgba(255,255,255,.10) 0%,
+      rgba(255,255,255,.035) 40%,
+      rgba(255,255,255,.055) 68%,
+      rgba(255,255,255,.09) 100%);
+    border-color:rgba(255,255,255,.13);
+    box-shadow:
+      0 24px 64px -18px rgba(0,0,0,.62),
+      0 4px 16px rgba(0,0,0,.30),
+      inset 0 1px 0 rgba(255,255,255,.10);
+  }
+  body.dark .glass-card::before{
+    background:
+      radial-gradient(ellipse 42% 50% at 14% 10%, rgba(170,60,150,.30) 0%, transparent 62%),
+      radial-gradient(ellipse 42% 50% at 88% 6%,  rgba(60,90,180,.30) 0%, transparent 62%),
+      radial-gradient(ellipse 52% 58% at 72% 106%, rgba(120,70,190,.28) 0%, transparent 66%),
+      radial-gradient(ellipse 38% 48% at 4% 96%,  rgba(180,70,120,.22) 0%, transparent 62%);
+  }
+
   /* ===================== CHAT SCREEN ===================== */
   .chat-screen{
     position:fixed;inset:0;z-index:5;display:flex;justify-content:center;
@@ -485,6 +545,35 @@
   .composer textarea::placeholder{color:var(--muted)}
   .composer .go-btn{width:40px;height:40px}
   .composer-hint{margin:.6rem auto 0;text-align:center;font-size:.68rem;color:var(--muted);letter-spacing:.02em}
+
+  /* ===================== COOLDOWN PILL ===================== */
+  .cooldown-pill{
+    display:none;
+    align-items:center;justify-content:center;
+    height:32px;min-width:54px;
+    padding:0 .7rem;margin-bottom:4px;
+    border-radius:16px;
+    background:var(--hover-bg);
+    border:1px solid var(--border);
+    color:var(--muted);
+    font-size:.72rem;font-weight:800;
+    font-variant-numeric:tabular-nums;
+    letter-spacing:.03em;
+    flex-shrink:0;
+    user-select:none;
+    animation:cooldownPulse 1.6s ease-in-out infinite;
+  }
+  .cooldown-pill.show{display:inline-flex}
+  @keyframes cooldownPulse{0%,100%{opacity:.55}50%{opacity:1}}
+
+  /* faded / non-functional go button during cooldown */
+  .go-btn.cooldown{
+    opacity:.32;
+    pointer-events:none;
+    cursor:not-allowed;
+    filter:grayscale(.4);
+    transform:none;
+  }
 
   /* HOME CONTENT */
   .heading{
@@ -946,6 +1035,8 @@
     .heading .scout::after{height:3px}
     .subheading{letter-spacing:.12em;margin-bottom:2.2rem;font-size:.62rem;padding-left:0}
 
+    .glass-card{padding:2rem 1.15rem 1.65rem;border-radius:26px}
+
     .search-wrapper{max-width:100%}
     .search-bar{padding:.25rem .25rem .25rem 1.25rem}
     .search-bar input{font-size:.92rem;padding:.55rem 0}
@@ -975,6 +1066,7 @@
     .composer textarea{font-size:.92rem}
     .composer .go-btn{width:38px;height:38px}
     .composer-hint{font-size:.62rem;margin-top:.5rem}
+    .cooldown-pill{height:28px;min-width:46px;font-size:.66rem;padding:0 .55rem;margin-bottom:5px}
 
     /* --- modals --- */
     .modal{padding:1.75rem 1.4rem 1.5rem;border-radius:20px}
@@ -1030,6 +1122,8 @@
     .heading{margin-bottom:.7rem}
     .subheading{margin-bottom:1.9rem;font-size:.58rem;letter-spacing:.1em}
     .hint{font-size:.56rem;letter-spacing:.12em}
+
+    .glass-card{padding:1.6rem .95rem 1.3rem;border-radius:22px}
   }
 </style>
 </head>
@@ -1092,19 +1186,21 @@
 
   <!-- ===================== HOME SCREEN ===================== -->
   <div class="home-screen" id="homeScreen">
-    <h1 class="heading">DarkNeuronAI  <span class="scout">Scout</span></h1>
-    <p class="subheading">Autonomous Research &amp; Report Generation AI Agent</p>
+    <div class="glass-card">
+      <h1 class="heading">DarkNeuronAI  <span class="scout">Scout</span></h1>
+      <p class="subheading">Autonomous Research &amp; Report Generation AI Agent</p>
 
-    <div class="search-wrapper">
-      <div class="search-bar">
-        <input type="text" id="queryInput" placeholder="Ask me anything…" autocomplete="off" spellcheck="false" aria-label="Research query" />
-        <button class="go-btn" id="runBtn" aria-label="Run research">
-          <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </button>
+      <div class="search-wrapper">
+        <div class="search-bar">
+          <input type="text" id="queryInput" placeholder="Ask me anything…" autocomplete="off" spellcheck="false" aria-label="Research query" />
+          <button class="go-btn" id="runBtn" aria-label="Run research">
+            <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </button>
+        </div>
       </div>
-    </div>
 
-    <p class="hint">● From the Innovation Labs of DarkNeuronAI ●</p>
+      <p class="hint">● From the Innovation Labs of DarkNeuronAI ●</p>
+    </div>
   </div>
 
   <!-- ===================== CHAT SCREEN ===================== -->
@@ -1127,6 +1223,7 @@
       <div class="composer-dock">
         <div class="composer">
           <textarea id="chatInput" rows="1" placeholder="Type your message..." autocomplete="off" spellcheck="false"></textarea>
+          <span class="cooldown-pill" id="cooldownPill" aria-live="polite">10s</span>
           <button class="go-btn" id="chatSendBtn" aria-label="Send message">
             <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
           </button>
@@ -2274,20 +2371,26 @@
       const homeScreen = document.getElementById('homeScreen');
       const chatScreen = document.getElementById('chatScreen');
       const backBtn = document.getElementById('backBtn');
+
       function goToChat() {
         homeScreen.classList.add('hidden');
         chatScreen.classList.add('active');
         document.body.classList.add('in-chat');
         setTimeout(() => chatInput.focus(), 500);
       }
+
       function goToHome() {
         chatScreen.classList.remove('active');
         homeScreen.classList.remove('hidden');
         document.body.classList.remove('in-chat');
+        /* Clear any previously typed prompt so home is fresh */
+        queryInput.value = '';
         setTimeout(() => queryInput.focus(), 500);
       }
+
       backBtn.addEventListener('click', () => {
         currentChatSessionId = null;
+        chatBody.innerHTML = '';
         goToHome();
       });
 
@@ -2296,6 +2399,7 @@
       const chatInput = document.getElementById('chatInput');
       const chatSendBtn = document.getElementById('chatSendBtn');
       const chatScroll = document.getElementById('chatScroll');
+      const cooldownPill = document.getElementById('cooldownPill');
 
       let scrollScheduled = false;
       function scrollToBottom() {
@@ -2751,6 +2855,17 @@
       }
 
       /* ============ COOLDOWN ============ */
+      function setCooldownPill(msLeft) {
+        if (!cooldownPill) return;
+        if (msLeft > 0) {
+          cooldownPill.textContent = Math.ceil(msLeft / 1000) + 's';
+          cooldownPill.classList.add('show');
+        } else {
+          cooldownPill.classList.remove('show');
+          cooldownPill.textContent = '';
+        }
+      }
+
       function setGoBtnsDisabled(on) {
         const runBtn = document.getElementById('runBtn');
         [chatSendBtn, runBtn].forEach(btn => {
@@ -2760,14 +2875,19 @@
           else { btn.disabled = false; btn.classList.remove('cooldown'); }
         });
       }
+
       function startCooldown() {
         cooldownEndsAt = Date.now() + COOLDOWN_SECONDS * 1000;
         const runBtn = document.getElementById('runBtn');
+
         [chatSendBtn, runBtn].forEach(btn => {
           if (!btn) return;
           btn.disabled = true;
           btn.classList.add('cooldown');
         });
+
+        setCooldownPill(COOLDOWN_SECONDS * 1000);
+
         if (cooldownTimerId) clearInterval(cooldownTimerId);
         cooldownTimerId = setInterval(() => {
           const left = cooldownEndsAt - Date.now();
@@ -2775,6 +2895,7 @@
             clearInterval(cooldownTimerId);
             cooldownTimerId = null;
             cooldownEndsAt = 0;
+            setCooldownPill(0);
             [chatSendBtn, runBtn].forEach(btn => {
               if (!btn) return;
               if (!busy) {
@@ -2782,6 +2903,8 @@
                 btn.classList.remove('cooldown');
               }
             });
+          } else {
+            setCooldownPill(left);
           }
         }, 200);
       }
