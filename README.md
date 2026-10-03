@@ -1,4 +1,4 @@
-# 🛰️ DarkNeuronAI's Scout
+# 🛰️ DarkNeuronAI Scout
 
 > **Autonomous Research & Report Generation AI Agent**
 
