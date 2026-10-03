@@ -68,15 +68,8 @@ scout-ai/
 │   ├── info_refiner.py
 │   └── report_generator.py
 │
-├── db/
-│   └── schema.sql          Supabase SQL setup
-│
 ├── tests/
-│   └── test_pipeline.py
-│
-└── docs/
-    ├── DEPLOYMENT.md
-    └── TROUBLESHOOTING.md
+    └── test_pipeline.py
 ```
 
 ---
