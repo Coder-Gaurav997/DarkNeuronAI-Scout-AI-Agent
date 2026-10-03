@@ -4,6 +4,8 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>DarkNeuronAI's Scout</title>
+<link rel="icon" type="image/png" href="scout-logo.png" id="scoutFavicon" />
+<link rel="apple-touch-icon" href="scout-logo.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -327,6 +329,7 @@
     flex:1;overflow-y:auto;overscroll-behavior:contain;
     scrollbar-width:thin;scrollbar-color:var(--border) transparent;
     padding:0 0 1rem;contain:content;
+    -webkit-overflow-scrolling:touch;
   }
   .chat-scroll::-webkit-scrollbar{width:6px}
   .chat-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
@@ -485,8 +488,12 @@
 
   /* HOME CONTENT */
   .heading{
-    font-weight:800;font-size:clamp(2rem,5.5vw,3.8rem);line-height:1.1;
-    letter-spacing:-.03em;color:var(--text);margin-bottom:1.15rem;white-space:nowrap;
+    font-weight:800;
+    font-size:clamp(1.3rem,7.6vw,3.8rem);
+    line-height:1.1;
+    letter-spacing:-.03em;color:var(--text);margin-bottom:1.15rem;
+    white-space:nowrap;
+    max-width:100%;
     animation:fadeUp .7s .03s cubic-bezier(.22,1,.36,1) both;
   }
   .heading .scout{
@@ -501,7 +508,7 @@
     animation:gradientShift 8s ease infinite;opacity:.9;
   }
   .subheading{
-    font-weight:700;font-size:clamp(.72rem,1.85vw,.92rem);letter-spacing:.22em;
+    font-weight:700;font-size:clamp(.62rem,1.85vw,.92rem);letter-spacing:.22em;
     color:var(--sub);margin-bottom:3.2rem;padding-left:.22em;
     animation:fadeUp .7s .1s cubic-bezier(.22,1,.36,1) both;
   }
@@ -900,69 +907,129 @@
   /* ===================== RESPONSIVE ===================== */
   @media (max-width:768px){
     .pro-btn span.pro-label{display:none}
-    .pro-btn{padding:0 .9rem}
+    .pro-btn{padding:0 .8rem}
   }
 
   @media (max-width:600px){
     body{padding:1rem}
-    .top-left-controls{top:.85rem;left:.85rem;gap:.4rem}
-    .tl-btn{height:38px;border-radius:19px;font-size:.76rem;padding:0 .8rem}
+
+    /* --- floating controls: compact, never overlapping --- */
+    .top-left-controls{
+      top:calc(.7rem + env(safe-area-inset-top,0px));
+      left:calc(.7rem + env(safe-area-inset-left,0px));
+      gap:.35rem;
+    }
+    .top-controls{
+      top:calc(.7rem + env(safe-area-inset-top,0px));
+      right:calc(.7rem + env(safe-area-inset-right,0px));
+      gap:.35rem;
+    }
+
+    .tl-btn{height:38px;border-radius:19px;font-size:.75rem;padding:0 .7rem;gap:.35rem}
     .tl-btn.icon-only{width:38px;padding:0}
     .tl-btn svg{width:16px;height:16px}
-    .usage-block{height:32px;padding:0 .6rem;gap:.3rem}
-    .usage-block .usage-left{font-size:.74rem}
-    .usage-block .usage-label-small{font-size:.64rem}
-    .top-controls{top:.85rem;right:.85rem;gap:.4rem}
+    .pro-btn{padding:0 .6rem}
+    .pro-btn .pro-star{font-size:.85rem}
+
+    .usage-block{height:32px;border-radius:16px;padding:0 .55rem;gap:.28rem}
+    .usage-block .usage-dot{width:5px;height:5px}
+    .usage-block .usage-left{font-size:.72rem}
+    .usage-block .usage-label-small{font-size:.6rem}
+
     .ctrl-btn,.user-chip{width:38px;height:38px}
-    .ctrl-btn svg{width:18px;height:18px}
-    .heading{font-size:1.55rem;margin-bottom:.9rem;white-space:normal}
+    .ctrl-btn svg{width:17px;height:17px}
+    .user-chip{font-size:.9rem}
+
+    /* --- home --- */
+    .home-screen{padding:1.25rem 1rem}
+    .heading{margin-bottom:.85rem}
     .heading .scout::after{height:3px}
-    .subheading{letter-spacing:.16em;margin-bottom:2.4rem;font-size:.68rem}
+    .subheading{letter-spacing:.12em;margin-bottom:2.2rem;font-size:.62rem;padding-left:0}
+
     .search-wrapper{max-width:100%}
     .search-bar{padding:.25rem .25rem .25rem 1.25rem}
     .search-bar input{font-size:.92rem;padding:.55rem 0}
     .go-btn{width:40px;height:40px}
     .go-btn svg{width:16px;height:16px}
-    .hint{margin-top:1.8rem;font-size:.65rem}
+    .hint{margin-top:1.6rem;font-size:.6rem;letter-spacing:.14em}
+
+    /* --- chat: push header below the floating controls --- */
     .chat-column{padding:0 1rem;max-width:100%}
-    .chat-header{padding:1.2rem 0 .8rem}
-    .chat-back{width:34px;height:34px}
-    .chat-back svg{width:15px;height:15px}
-    .bubble-wrap{max-width:92%}
-    .bubble{font-size:.9rem;padding:.85rem 1.1rem}
-    .bubble .report-heading{font-size:1rem}
-    .composer-dock{padding:1.25rem 0 1.25rem}
+    .chat-header{padding:3.4rem 0 .7rem;gap:.6rem}
+    .chat-back{width:36px;height:36px}
+    .chat-back svg{width:16px;height:16px}
+    .chat-title{font-size:.95rem;gap:.45rem}
+    .mini-logo{width:24px;height:24px}
+
+    .chat-body{gap:1.1rem}
+    .msg{gap:.6rem}
+    .avatar{width:34px;height:34px;margin-top:1px}
+    .bubble-wrap{max-width:100%}
+    .bubble{font-size:.9rem;padding:.8rem 1.05rem;border-radius:18px}
+    .bubble .report-heading{font-size:1rem;margin:.85rem 0 .35rem 0}
+    .bubble .srcs span,.bubble .srcs a{font-size:.64rem}
+    .status-bubble{font-size:.78rem !important;padding:.5rem .9rem !important}
+
+    .composer-dock{padding:1.1rem 0 calc(1.1rem + env(safe-area-inset-bottom,0px))}
+    .composer{padding:.35rem .35rem .35rem 1.15rem;border-radius:24px}
+    .composer textarea{font-size:.92rem}
     .composer .go-btn{width:38px;height:38px}
-    .modal{padding:1.75rem 1.5rem 1.5rem;border-radius:20px}
+    .composer-hint{font-size:.62rem;margin-top:.5rem}
+
+    /* --- modals --- */
+    .modal{padding:1.75rem 1.4rem 1.5rem;border-radius:20px}
     .modal h2{font-size:1.15rem}
     .modal p{font-size:.88rem}
     .limit-modal{padding:1.6rem 1.4rem 1.4rem;border-radius:18px}
-    .signin-modal{padding:1.9rem 1.5rem 1.5rem;border-radius:22px;min-height:400px}
-    .auth-view h2{font-size:1.3rem}
-    .signin-logo{width:76px;height:76px;margin-bottom:1rem}
-    .avatar{width:34px;height:34px}
-    .mini-logo{width:24px;height:24px}
-    .profile-avatar{width:56px;height:56px;font-size:1.4rem}
-    .chat-sidebar{width:280px}
-    .pro-modal{padding:1.35rem 1.25rem 1.15rem;border-radius:18px}
-    .pro-modal h2{font-size:1.15rem}
+    .signin-modal{padding:1.8rem 1.4rem 1.4rem;border-radius:22px;min-height:0}
+    .auth-view h2{font-size:1.25rem}
+    .signin-logo{width:72px;height:72px;margin-bottom:.9rem}
+    .profile-avatar{width:54px;height:54px;font-size:1.35rem}
+    .profile-name{font-size:1.05rem}
+    .chat-sidebar{width:290px}
+
+    .pro-modal{padding:1.3rem 1.2rem 1.1rem;border-radius:18px}
+    .pro-modal h2{font-size:1.12rem}
     .pro-feature{padding:.55rem .7rem;gap:.6rem}
     .pro-feature-text strong{font-size:.78rem}
     .pro-feature-text span{font-size:.7rem}
     .pro-dev-notice{padding:.6rem .75rem}
     .pro-dev-notice-text{font-size:.72rem}
     .pro-modal-actions button{padding:.65rem .9rem;font-size:.82rem}
-    .edit-textarea{min-width:0;width:100%}
+
+    .edit-textarea{min-width:min(240px,72vw);font-size:.92rem}
   }
 
   @media (max-width:400px){
-    .top-left-controls{top:.7rem;left:.7rem;gap:.35rem}
-    .top-controls{top:.7rem;right:.7rem;gap:.35rem}
-    .tl-btn{height:36px}
-    .tl-btn.icon-only{width:36px}
-    .usage-block{height:30px;padding:0 .55rem}
-    .ctrl-btn,.user-chip{width:36px;height:36px}
+    .top-left-controls{
+      top:calc(.6rem + env(safe-area-inset-top,0px));
+      left:calc(.6rem + env(safe-area-inset-left,0px));
+      gap:.3rem;
+    }
+    .top-controls{
+      top:calc(.6rem + env(safe-area-inset-top,0px));
+      right:calc(.6rem + env(safe-area-inset-right,0px));
+      gap:.3rem;
+    }
+
+    .tl-btn{height:34px;border-radius:17px;font-size:.7rem;padding:0 .55rem;gap:.3rem}
+    .tl-btn.icon-only{width:34px;padding:0}
+    .tl-btn svg{width:15px;height:15px}
+    .pro-btn{padding:0 .5rem}
+    .pro-btn .pro-star{font-size:.82rem}
+
+    .usage-block{height:30px;padding:0 .5rem;gap:.25rem}
     .usage-block .usage-label-small{display:none}
+    .usage-block .usage-left{font-size:.7rem}
+
+    .ctrl-btn,.user-chip{width:34px;height:34px}
+    .ctrl-btn svg{width:16px;height:16px}
+    .user-chip{font-size:.85rem}
+
+    .chat-header{padding-top:3rem}
+    .heading{margin-bottom:.7rem}
+    .subheading{margin-bottom:1.9rem;font-size:.58rem;letter-spacing:.1em}
+    .hint{font-size:.56rem;letter-spacing:.12em}
   }
 </style>
 </head>
@@ -1318,6 +1385,39 @@
       </div>
     </div>
   </div>
+
+  <script>
+    /* ============================================================
+       CIRCULAR FAVICON — renders scout-logo.png into a round
+       canvas and swaps it in as the browser tab icon.
+       ============================================================ */
+    (function () {
+      var link = document.getElementById('scoutFavicon');
+      if (!link) return;
+      var img = new Image();
+      img.onload = function () {
+        try {
+          var S = 128;
+          var c = document.createElement('canvas');
+          c.width = S;
+          c.height = S;
+          var ctx = c.getContext('2d');
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(S / 2, S / 2, S / 2, 0, Math.PI * 2);
+          ctx.closePath();
+          ctx.clip();
+          ctx.fillStyle = '#000';
+          ctx.fillRect(0, 0, S, S);
+          ctx.drawImage(img, 0, 0, S, S);
+          ctx.restore();
+          link.type = 'image/png';
+          link.href = c.toDataURL('image/png');
+        } catch (e) { /* keep the plain PNG fallback */ }
+      };
+      img.src = 'scout-logo.png';
+    })();
+  </script>
 
   <script>
     (() => {
@@ -2327,15 +2427,6 @@
 
         busy = true;
         setGoBtnsDisabled(true);
-
-        // If we have a live session, best-effort clean DB rows after this message
-        if (currentChatSessionId && sb) {
-          try {
-            // find original user message content by scanning session
-            // Simple heuristic: delete all messages in session then re-sync would be too aggressive.
-            // Instead just append — old rows remain; user-visible chat is what matters.
-          } catch (e) {}
-        }
 
         const sessionId = currentChatSessionId;
         if (sessionId) {
