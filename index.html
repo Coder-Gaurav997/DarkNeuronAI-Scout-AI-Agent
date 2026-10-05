@@ -575,6 +575,12 @@
     font-weight:500;
   }
 
+  .msg.assistant .bubble.error-bubble{animation:retryPulse 1.4s ease-in-out infinite}
+  @keyframes retryPulse{
+    0%,100%{box-shadow:0 2px 14px rgba(139,0,0,.10)}
+    50%{box-shadow:0 2px 20px rgba(139,0,0,.32)}
+}
+
   /* STATUS BUBBLE */
   .status-bubble{
     display:inline-flex !important;align-items:center;gap:.6rem;
