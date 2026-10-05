@@ -1601,1631 +1601,1264 @@
     </div>
   </div>
 
-  <script>
+   <script>
+  (() => {
+    'use strict';
+  
+    const DAILY_LIMIT = 3;
+    const API = '/api/research';
+    const COOLDOWN_SECONDS = 10;
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY_MS = 1500;
+  
+    let SUPABASE_URL = '';
+    let SUPABASE_ANON_KEY = '';
+    let sb = null;
+    let currentUser = null;
+    let currentSession = null;
+    let currentChatSessionId = null;
+    let chatSessionsCache = [];
+    let sidebarOpen = false;
+    let busy = false;
+    let cooldownTimerId = null;
+    let cooldownEndsAt = 0;
+    let retryBubbleEl = null;
+  
+    const $ = id => document.getElementById(id);
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+  
+    const signinModal = $('signinModal');
+    const userChip = $('userChip');
+    const queryInput = $('queryInput');
+    const chatBody = $('chatBody');
+    const chatInput = $('chatInput');
+    const chatSendBtn = $('chatSendBtn');
+    const chatScroll = $('chatScroll');
+    const cooldownPill = $('cooldownPill');
+    const runBtn = $('runBtn');
+    const homeScreen = $('homeScreen');
+    const chatScreen = $('chatScreen');
+    const sidebar = $('chatSidebar');
+    const sidebarOverlay = $('sidebarOverlay');
+    const sidebarList = $('sidebarList');
+    const profileModal = $('profileModal');
+    const passwordModal = $('passwordModal');
+    const nameModal = $('nameModal');
+    const proModal = $('proModal');
+    const infoModal = $('infoModal');
+    const limitModal = $('limitModal');
+  
+    const views = {
+      choose: $('viewChoose'),
+      signup: $('viewSignup'),
+      username: $('viewUsername'),
+      login: $('viewLogin'),
+    };
+  
     /* ============================================================
-       CIRCULAR FAVICON — renders scout-logo.png into a round
-       canvas and swaps it in as the browser tab icon.
-       (Google Search uses the raw PNG from the <link> tags,
-        not this canvas — this is only for the browser tab.)
+       CONFIG + AUTH
        ============================================================ */
-    (function () {
-      var link = document.getElementById('scoutFavicon');
-      if (!link) return;
-      var img = new Image();
-      img.onload = function () {
-        try {
-          var S = 128;
-          var c = document.createElement('canvas');
-          c.width = S;
-          c.height = S;
-          var ctx = c.getContext('2d');
-          ctx.save();
-          ctx.beginPath();
-          ctx.arc(S / 2, S / 2, S / 2, 0, Math.PI * 2);
-          ctx.closePath();
-          ctx.clip();
-          ctx.fillStyle = '#000';
-          ctx.fillRect(0, 0, S, S);
-          ctx.drawImage(img, 0, 0, S, S);
-          ctx.restore();
-          link.type = 'image/png';
-          link.href = c.toDataURL('image/png');
-        } catch (e) { /* keep the plain PNG fallback */ }
-      };
-      img.src = 'scout-logo.png';
-    })();
-  </script>
-
-  <script>
-    (() => {
-      'use strict';
-
-      const DAILY_LIMIT = 3;
-      const API = '/api/research';
-      const COOLDOWN_SECONDS = 10;
-
-      let SUPABASE_URL = '';
-      let SUPABASE_ANON_KEY = '';
-      let sb = null;
-      let currentUser = null;
-      let currentSession = null;
-      let currentChatSessionId = null;
-      let chatSessionsCache = [];
-      let sidebarOpen = false;
-      let busy = false;
-      let cooldownTimerId = null;
-      let cooldownEndsAt = 0;
-
-      const signinModal = document.getElementById('signinModal');
-      const userChip = document.getElementById('userChip');
-      const views = {
-        choose: document.getElementById('viewChoose'),
-        signup: document.getElementById('viewSignup'),
-        username: document.getElementById('viewUsername'),
-        login: document.getElementById('viewLogin'),
-      };
-      const signupForm = document.getElementById('signupForm');
-      const loginForm = document.getElementById('loginForm');
-      const signupError = document.getElementById('signupError');
-      const loginError = document.getElementById('loginError');
-
-      function showView(name) {
-        Object.values(views).forEach(v => v.classList.add('hidden'));
-        views[name].classList.remove('hidden');
-        signupError.textContent = '';
-        signupError.style.color = '';
-        signupError.innerHTML = '';
-        loginError.textContent = '';
-        document.getElementById('usernameError').textContent = '';
+    async function loadConfig() {
+      try {
+        const res = await fetch('/api/config');
+        const data = await res.json();
+        SUPABASE_URL = data.supabase_url || '';
+        SUPABASE_ANON_KEY = data.supabase_anon_key || '';
+      } catch (e) { console.error('Config load failed:', e); }
+      if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+        console.error('Supabase credentials missing. Check /api/config.');
+        return;
       }
-      function showSigninModal() { signinModal.classList.add('active'); }
-      function hideSigninModal() { signinModal.classList.remove('active'); }
-
-      /* ============ CONFIG ============ */
-      async function loadConfig() {
-        try {
-          const res = await fetch('/api/config');
-          const data = await res.json();
-          SUPABASE_URL = data.supabase_url || '';
-          SUPABASE_ANON_KEY = data.supabase_anon_key || '';
-        } catch (e) {
-          console.error('Config load failed:', e);
-        }
-        if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-          console.error('Supabase credentials missing. Check /api/config.');
-          return;
-        }
-        sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        await initAuth();
-      }
-
-      async function initAuth() {
-        const { data: { session } } = await sb.auth.getSession();
-        if (session) {
-          applySession(session);
-        } else {
-          showSigninModal();
-          showView('choose');
-        }
-        sb.auth.onAuthStateChange((event, session) => {
-          if (event === 'SIGNED_IN' && session) applySession(session);
-          else if (event === 'SIGNED_OUT') clearSession();
-        });
-      }
-
-      function applySession(session) {
-        currentSession = session;
-        currentUser = { id: session.user.id, email: session.user.email };
-        updateUserChip();
-        updateUsageBlock();
-        hideSigninModal();
-        syncUsageFromServer();
-        loadChatHistory();
-        queryInput.focus();
-
-        const md = session.user.user_metadata || {};
-        if (!md.username || md.username === '') {
-          setTimeout(() => {
-            showSigninModal();
-            showView('username');
-            document.getElementById('usernameInput').value = '';
-            document.getElementById('usernameError').textContent = '';
-            setTimeout(() => document.getElementById('usernameInput').focus(), 250);
-          }, 400);
-        }
-      }
-
-      function clearSession() {
-        currentSession = null;
-        currentUser = null;
-        currentChatSessionId = null;
-        chatSessionsCache = [];
-        updateUserChip();
-        renderChatHistory();
-        closeSidebar();
-        showSigninModal();
-        showView('choose');
-      }
-
-      function updateUserChip() {
-        if (currentUser && currentUser.email) {
-          const name = getUsername();
-          userChip.textContent = (name ? name.charAt(0) : currentUser.email.charAt(0) || '?').toUpperCase();
-          userChip.title = name ? `${name} · ${currentUser.email}` : currentUser.email;
-          userChip.style.display = 'flex';
-        } else {
-          userChip.style.display = 'none';
-        }
-      }
-
-      function getUsername() {
-        if (!currentSession) return '';
-        const md = currentSession.user.user_metadata || {};
-        return md.username || md.full_name || '';
-      }
-
-      /* ============ USAGE BLOCK ============ */
-      function updateUsageBlock() {
-        const block = document.getElementById('usageBlock');
-        const leftEl = document.getElementById('usageLeft');
-        const used = getUsage().count;
-        const left = Math.max(0, DAILY_LIMIT - used);
-        leftEl.textContent = left;
-        block.classList.remove('warn', 'full');
-        if (left === 0) block.classList.add('full');
-        else if (left === 1) block.classList.add('warn');
-      }
-
-      /* ============ SIDEBAR ============ */
-      const sidebar = document.getElementById('chatSidebar');
-      const sidebarOverlay = document.getElementById('sidebarOverlay');
-      const sidebarList = document.getElementById('sidebarList');
-      const sidebarToggle = document.getElementById('sidebarToggle');
-      const sidebarClose = document.getElementById('sidebarClose');
-      const newChatBtn = document.getElementById('newChatBtn');
-
-      function openSidebar() {
-        sidebarOpen = true;
-        sidebar.classList.add('open');
-        sidebarOverlay.classList.add('active');
-      }
-      function closeSidebar() {
-        sidebarOpen = false;
-        sidebar.classList.remove('open');
-        sidebarOverlay.classList.remove('active');
-      }
-      sidebarToggle.addEventListener('click', () => sidebarOpen ? closeSidebar() : openSidebar());
-      sidebarClose.addEventListener('click', closeSidebar);
-      sidebarOverlay.addEventListener('click', closeSidebar);
-
-      document.addEventListener('keydown', e => {
-        if (e.key === 'Escape' && sidebarOpen) closeSidebar();
+      sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      await initAuth();
+    }
+  
+    async function initAuth() {
+      const { data: { session } } = await sb.auth.getSession();
+      if (session) applySession(session);
+      else { showSigninModal(); showView('choose'); }
+  
+      sb.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN' && session) applySession(session);
+        else if (event === 'SIGNED_OUT') clearSession();
       });
-
-      newChatBtn.addEventListener('click', () => {
-        currentChatSessionId = null;
-        chatBody.innerHTML = '';
-        goToHome();
-        closeSidebar();
-        renderChatHistory();
-      });
-
-      /* ============ SKELETON HISTORY ============ */
-      function renderHistorySkeleton() {
-        sidebarList.innerHTML = '';
-        for (let i = 0; i < 4; i++) {
-          const el = document.createElement('div');
-          el.className = 'skeleton-item';
-          el.innerHTML = `
-            <div class="skeleton skeleton-icon"></div>
-            <div class="skeleton-lines">
-              <div class="skeleton skeleton-line-1"></div>
-              <div class="skeleton skeleton-line-2"></div>
-            </div>`;
-          sidebarList.appendChild(el);
-        }
-      }
-
-      /* ============ CHAT HISTORY ============ */
-      async function loadChatHistory() {
-        if (!currentUser || !sb) return;
-        renderHistorySkeleton();
-        try {
-          const { data, error } = await sb
-            .from('chat_sessions')
-            .select('id, title, updated_at')
-            .order('updated_at', { ascending: false })
-            .limit(60);
-          if (error) throw error;
-          chatSessionsCache = data || [];
-          renderChatHistory();
-        } catch (e) {
-          console.error('Failed to load chat history:', e);
-          chatSessionsCache = [];
-          renderChatHistory();
-        }
-      }
-
-      function relativeTime(iso) {
-        try {
-          const then = new Date(iso).getTime();
-          const now = Date.now();
-          const diff = Math.max(0, now - then);
-          const sec = Math.floor(diff / 1000);
-          if (sec < 60) return 'just now';
-          const min = Math.floor(sec / 60);
-          if (min < 60) return `${min}m ago`;
-          const hr = Math.floor(min / 60);
-          if (hr < 24) return `${hr}h ago`;
-          const day = Math.floor(hr / 24);
-          if (day < 7) return `${day}d ago`;
-          return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-        } catch (e) { return ''; }
-      }
-
-      function renderChatHistory() {
-        sidebarList.innerHTML = '';
-        if (!currentUser) {
-          sidebarList.innerHTML = `<div class="sidebar-empty">
-            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            Sign in to save your chat history.
-          </div>`;
-          return;
-        }
-        if (!chatSessionsCache.length) {
-          sidebarList.innerHTML = `<div class="sidebar-empty">
-            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            No chats yet.<br>Start a research query to save one.
-          </div>`;
-          return;
-        }
-
-        chatSessionsCache.forEach(sess => {
-          const item = document.createElement('div');
-          item.className = 'history-item';
-          if (sess.id === currentChatSessionId) item.classList.add('active');
-          item.innerHTML = `
-            <div class="history-icon">
-              <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            </div>
-            <div class="history-meta">
-              <div class="history-title"></div>
-              <div class="history-time"></div>
-            </div>
-            <button class="history-delete" aria-label="Delete chat">
-              <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-            </button>
-          `;
-          item.querySelector('.history-title').textContent = sess.title || 'Untitled';
-          item.querySelector('.history-time').textContent = relativeTime(sess.updated_at);
-          item.addEventListener('click', (e) => {
-            if (e.target.closest('.history-delete')) return;
-            loadChatSession(sess.id);
-          });
-          item.querySelector('.history-delete').addEventListener('click', async (e) => {
-            e.stopPropagation();
-            await deleteChatSession(sess.id);
-          });
-          sidebarList.appendChild(item);
-        });
-      }
-
-      async function createChatSession(title) {
-        if (!currentUser || !sb) return null;
-        try {
-          const { data, error } = await sb
-            .from('chat_sessions')
-            .insert({ user_id: currentUser.id, title: (title || 'New Chat').slice(0, 100) })
-            .select()
-            .single();
-          if (error) throw error;
-          currentChatSessionId = data.id;
-          chatSessionsCache.unshift({ id: data.id, title: data.title, updated_at: data.updated_at });
-          renderChatHistory();
-          return data.id;
-        } catch (e) {
-          console.error('Failed to create chat session:', e);
-          return null;
-        }
-      }
-
-      async function saveMessage(sessionId, role, content, sources) {
-        if (!sessionId || !sb) return null;
-        try {
-          const { data, error } = await sb.from('chat_messages').insert({
-            session_id: sessionId,
-            role,
-            content,
-            sources: sources || null
-          }).select().single();
-          if (error) throw error;
-          await sb.from('chat_sessions')
-            .update({ updated_at: new Date().toISOString() })
-            .eq('id', sessionId);
-          const s = chatSessionsCache.find(x => x.id === sessionId);
-          if (s) { s.updated_at = new Date().toISOString(); }
-          chatSessionsCache.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
-          renderChatHistory();
-          return data;
-        } catch (e) {
-          console.error('Failed to save message:', e);
-          return null;
-        }
-      }
-
-      async function deleteChatSession(sessionId) {
-        if (!confirm('Delete this chat? This cannot be undone.')) return;
-        try {
-          await sb.from('chat_sessions').delete().eq('id', sessionId);
-          chatSessionsCache = chatSessionsCache.filter(s => s.id !== sessionId);
-          if (currentChatSessionId === sessionId) {
-            currentChatSessionId = null;
-            chatBody.innerHTML = '';
-            goToHome();
-          }
-          renderChatHistory();
-        } catch (e) {
-          console.error('Failed to delete chat:', e);
-          alert('Could not delete chat.');
-        }
-      }
-
-      async function loadChatSession(sessionId) {
-        if (!sb) return;
-        try {
-          const { data, error } = await sb
-            .from('chat_messages')
-            .select('*')
-            .eq('session_id', sessionId)
-            .order('created_at', { ascending: true });
-          if (error) throw error;
-
-          currentChatSessionId = sessionId;
-          chatBody.innerHTML = '';
-
-          (data || []).forEach(m => {
-            if (m.role === 'user') addUserBubble(m.content);
-            else addAssistantBubbleStatic(m.content, m.sources);
-          });
-
-          closeSidebar();
-          goToChat();
-          renderChatHistory();
-        } catch (e) {
-          console.error('Failed to load chat:', e);
-          alert('Could not load that chat.');
-        }
-      }
-
-      /* ============ EMAIL VALIDATION ============ */
-      (function() {
-        const emailInput = document.getElementById('signupEmail');
-        let debounceTimer = null;
-
-        emailInput.addEventListener('input', () => {
-          const val = emailInput.value.trim().toLowerCase();
-          clearTimeout(debounceTimer);
-          if (!val || val.length < 5 || !val.includes('@')) {
-            emailInput.style.borderColor = '';
-            emailInput.style.boxShadow = '';
-            return;
-          }
-          debounceTimer = setTimeout(async () => {
-            try {
-              const res = await fetch('/api/validate-email', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: val }),
-              });
-              const data = await res.json();
-              if (data.valid) {
-                emailInput.style.borderColor = '#22c55e';
-                emailInput.style.boxShadow = '0 0 0 3px rgba(34,197,94,.10)';
-              } else {
-                emailInput.style.borderColor = '#ef4444';
-                emailInput.style.boxShadow = '0 0 0 3px rgba(239,68,68,.10)';
-              }
-            } catch (e) {}
-          }, 600);
-        });
-
-        emailInput.addEventListener('blur', () => {
-          emailInput.style.borderColor = '';
-          emailInput.style.boxShadow = '';
-        });
-      })();
-
-      /* ============ SIGNUP ============ */
-      document.getElementById('showSignupBtn').addEventListener('click', () => {
-        showView('signup');
-        setTimeout(() => document.getElementById('signupEmail').focus(), 200);
-      });
-      document.getElementById('signupBack').addEventListener('click', () => showView('choose'));
-
-      signupForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        signupError.style.color = '';
-        signupError.innerHTML = '';
-
-        const email = document.getElementById('signupEmail').value.trim().toLowerCase();
-        const password = document.getElementById('signupPassword').value;
-        const submitBtn = document.getElementById('signupSubmit');
-
-        if (!email || !password) { signupError.textContent = 'Please fill in all fields.'; return; }
-        if (password.length < 6) { signupError.textContent = 'Password must be at least 6 characters.'; return; }
-
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Verifying email…';
-
-        try {
-          const vr = await fetch('/api/validate-email', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email }),
-          });
-          const vdata = await vr.json();
-          if (!vdata.valid) {
-            if (vdata.suggestion) {
-              signupError.innerHTML = `${vdata.reason} <a href="#" id="applySuggestion" style="color:inherit;text-decoration:underline;font-weight:700;">Use it</a>`;
-              const link = document.getElementById('applySuggestion');
-              if (link) {
-                link.addEventListener('click', (ev) => {
-                  ev.preventDefault();
-                  document.getElementById('signupEmail').value = vdata.suggestion;
-                  signupError.innerHTML = '';
-                });
-              }
-            } else {
-              signupError.textContent = vdata.reason || 'Invalid email address.';
-            }
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Create Account';
-            return;
-          }
-        } catch (err) {
-          console.warn('Email validation unreachable, continuing:', err);
-        }
-
-        submitBtn.textContent = 'Creating account…';
-
-        try {
-          const { data, error } = await sb.auth.signUp({ email, password });
-          if (error) throw error;
-
-          if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
-            signupError.textContent = 'An account with this email already exists. Please log in instead.';
-            return;
-          }
-
-          if (data.session) {
-            applySession(data.session);
-          } else {
-            const { data: loginData, error: loginErr } = await sb.auth.signInWithPassword({ email, password });
-            if (loginErr) {
-              signupError.textContent = 'Account created but sign-in failed. Please try logging in.';
-              return;
-            }
-            applySession(loginData.session);
-          }
-        } catch (err) {
-          console.error('Signup error:', err);
-          const msg = (err && err.message) || 'Signup failed. Please try again.';
-          if (/already registered|already exists|user already/i.test(msg)) {
-            signupError.textContent = 'An account with this email already exists. Please log in instead.';
-          } else if (/email not confirmed/i.test(msg)) {
-            signupError.textContent = 'Email confirmation is still ON in Supabase. Please turn it off.';
-          } else {
-            signupError.textContent = msg;
-          }
-        } finally {
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Create Account';
-        }
-      });
-
-      /* ============ LOGIN ============ */
-      document.getElementById('showLoginBtn').addEventListener('click', () => {
-        showView('login');
-        setTimeout(() => document.getElementById('loginEmail').focus(), 200);
-      });
-      document.getElementById('loginBack').addEventListener('click', () => showView('choose'));
-
-      loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        loginError.textContent = '';
-        const email = document.getElementById('loginEmail').value.trim();
-        const password = document.getElementById('loginPassword').value;
-        const submitBtn = document.getElementById('loginSubmit');
-
-        if (!email || !password) { loginError.textContent = 'Please fill in all fields.'; return; }
-
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Signing in…';
-
-        try {
-          const { data, error } = await sb.auth.signInWithPassword({ email, password });
-          if (error) throw error;
-          applySession(data.session);
-        } catch (err) {
-          console.error('Login error:', err);
-          const msg = (err && err.message) || 'Sign in failed.';
-          if (/invalid login credentials/i.test(msg)) loginError.textContent = 'Incorrect email or password.';
-          else if (/email not confirmed/i.test(msg)) loginError.textContent = 'Email confirmation is still ON in Supabase. Please turn it off.';
-          else loginError.textContent = msg;
-        } finally {
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Sign In';
-        }
-      });
-
-      /* ============ USERNAME ONBOARDING ============ */
-      document.getElementById('usernameForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const err = document.getElementById('usernameError');
-        const btn = document.getElementById('usernameSubmit');
-        const val = document.getElementById('usernameInput').value.trim();
-        err.textContent = '';
-        if (!val) { err.textContent = 'Please enter a name.'; return; }
-        btn.disabled = true;
-        btn.textContent = 'Saving…';
-        try {
-          await saveUsername(val);
-          hideSigninModal();
-          queryInput.focus();
-        } catch (e2) {
-          err.textContent = e2.message || 'Could not save.';
-        } finally {
-          btn.disabled = false;
-          btn.textContent = 'Continue';
-        }
-      });
-
-      document.getElementById('skipUsername').addEventListener('click', async () => {
-        const email = currentUser?.email || '';
-        const fallback = email.split('@')[0] || 'Scout User';
-        try { await saveUsername(fallback); } catch (e) {}
-        hideSigninModal();
-        queryInput.focus();
-      });
-
-      async function saveUsername(name) {
-        const { error } = await sb.auth.updateUser({ data: { username: name } });
-        if (error) throw error;
-        const { data: { session } } = await sb.auth.getSession();
-        if (session) currentSession = session;
-        updateUserChip();
-        updateProfileDisplay();
-      }
-
-      /* ============ PROFILE ============ */
-      const profileModal = document.getElementById('profileModal');
-      const profileClose = document.getElementById('profileClose');
-      const passwordModal = document.getElementById('passwordModal');
-      const passwordClose = document.getElementById('passwordClose');
-      const nameModal = document.getElementById('nameModal');
-      const nameClose = document.getElementById('nameClose');
-
-      function getAccountType() {
-        const md = currentSession?.user?.user_metadata || {};
-        return md.plan === 'pro' ? 'Pro' : 'Free';
-      }
-
-      function updateProfileDisplay() {
-        const name = getUsername();
-        const email = currentUser ? currentUser.email : '';
-        const type = getAccountType();
-
-        document.getElementById('profileNameText').textContent = name || 'Scout User';
-        document.getElementById('profileEmail').textContent = email;
-        document.getElementById('fieldName').textContent = name || 'Not set';
-        document.getElementById('fieldEmail').textContent = email;
-        document.getElementById('fieldAccountType').textContent = type;
-        document.getElementById('profileAvatar').textContent =
-          (name ? name.charAt(0) : email.charAt(0) || 'S').toUpperCase();
-
-        const badge = document.getElementById('accountBadge');
-        badge.textContent = type;
-        badge.classList.toggle('pro', type === 'Pro');
-
-        const upgradeBtn = document.getElementById('upgradeProFromProfile');
-        if (upgradeBtn) {
-          upgradeBtn.textContent = type === 'Pro' ? 'Active' : 'Upgrade';
-          upgradeBtn.disabled = type === 'Pro';
-        }
-      }
-
-      function openProfile() {
-        updateProfileDisplay();
-        profileModal.classList.add('active');
-      }
-      function closeProfile() { profileModal.classList.remove('active'); }
-
-      userChip.addEventListener('click', () => {
-        if (!currentUser) return;
-        openProfile();
-      });
-
-      profileClose.addEventListener('click', closeProfile);
-      profileModal.addEventListener('click', e => { if (e.target === profileModal) closeProfile(); });
-
-      document.getElementById('upgradeProFromProfile').addEventListener('click', () => {
-        closeProfile();
-        openProModal();
-      });
-
-      document.getElementById('editNameBtn').addEventListener('click', () => {
-        closeProfile();
-        document.getElementById('nameInput').value = getUsername();
-        document.getElementById('nameError').textContent = '';
-        nameModal.classList.add('active');
-        setTimeout(() => document.getElementById('nameInput').focus(), 200);
-      });
-      nameClose.addEventListener('click', () => nameModal.classList.remove('active'));
-      nameModal.addEventListener('click', e => { if (e.target === nameModal) nameModal.classList.remove('active'); });
-
-      document.getElementById('nameForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const err = document.getElementById('nameError');
-        const btn = document.getElementById('nameSubmit');
-        const val = document.getElementById('nameInput').value.trim();
-        err.textContent = '';
-        if (!val) { err.textContent = 'Please enter a name.'; return; }
-        btn.disabled = true;
-        btn.textContent = 'Saving…';
-        try {
-          await saveUsername(val);
-          nameModal.classList.remove('active');
-        } catch (e2) {
-          err.textContent = e2.message || 'Could not save.';
-        } finally {
-          btn.disabled = false;
-          btn.textContent = 'Save';
-        }
-      });
-
-      document.getElementById('changePasswordBtn').addEventListener('click', () => {
-        closeProfile();
-        document.getElementById('newPassword').value = '';
-        document.getElementById('confirmPassword').value = '';
-        document.getElementById('passwordError').textContent = '';
-        document.getElementById('passwordError').style.color = '';
-        passwordModal.classList.add('active');
-        setTimeout(() => document.getElementById('newPassword').focus(), 200);
-      });
-      passwordClose.addEventListener('click', () => passwordModal.classList.remove('active'));
-      passwordModal.addEventListener('click', e => { if (e.target === passwordModal) passwordModal.classList.remove('active'); });
-
-      document.getElementById('passwordForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const err = document.getElementById('passwordError');
-        const btn = document.getElementById('passwordSubmit');
-        const p1 = document.getElementById('newPassword').value;
-        const p2 = document.getElementById('confirmPassword').value;
-        err.style.color = '';
-        err.textContent = '';
-        if (p1.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
-        if (p1 !== p2) { err.textContent = 'Passwords do not match.'; return; }
-        btn.disabled = true;
-        btn.textContent = 'Updating…';
-        try {
-          const { error } = await sb.auth.updateUser({ password: p1 });
-          if (error) throw error;
-          err.style.color = '#16a34a';
-          err.textContent = 'Password updated successfully.';
-          setTimeout(() => {
-            err.style.color = '';
-            passwordModal.classList.remove('active');
-          }, 1400);
-        } catch (e2) {
-          err.style.color = '';
-          err.textContent = e2.message || 'Could not update password.';
-        } finally {
-          btn.disabled = false;
-          btn.textContent = 'Update Password';
-        }
-      });
-
-      document.getElementById('signOutBtn').addEventListener('click', async () => {
-        if (!confirm(`Sign out of ${currentUser.email}?`)) return;
-        closeProfile();
-        try { await sb.auth.signOut(); } catch (e) {}
-        clearSession();
-      });
-
-      document.getElementById('deleteAccountBtn').addEventListener('click', async () => {
-        if (!currentUser) { alert('No active session. Please sign in again.'); return; }
-        const confirmed = confirm(
-          `Delete account for ${currentUser.email}?\n\n` +
-          `This will permanently erase your account, credentials, chat history, and usage data. ` +
-          `This cannot be undone.\n\nContinue?`
-        );
-        if (!confirmed) return;
-        const btn = document.getElementById('deleteAccountBtn');
-        const originalLabel = btn.textContent;
-        btn.disabled = true;
-        btn.textContent = 'Deleting…';
-        try {
-          const token = await getAccessToken();
-          if (!token) throw new Error('Session expired. Please sign in again.');
-          const res = await fetch('/api/delete-account', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          });
-          let data;
-          try { data = await res.json(); } catch (parseErr) {
-            throw new Error(`Server returned ${res.status} (invalid response)`);
-          }
-          if (!res.ok || !data.success) {
-            throw new Error(data.error || `Server returned ${res.status}`);
-          }
-          closeProfile();
-          try { await sb.auth.signOut(); } catch (e) {}
-          clearSession();
-          alert('Your account has been permanently deleted.');
-        } catch (err) {
-          console.error('Delete account failed:', err);
-          alert('Could not delete account.\n\n' + (err.message || 'Unknown error.') + '\n\nTry signing out and back in, then retry.');
-          btn.disabled = false;
-          btn.textContent = originalLabel;
-        }
-      });
-
-      document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') {
-          profileModal.classList.remove('active');
-          passwordModal.classList.remove('active');
-          nameModal.classList.remove('active');
-        }
-      });
-
-      /* ============ PRO MODAL ============ */
-      const proModal = document.getElementById('proModal');
-      const proModalClose = document.getElementById('proModalClose');
-      const notifyMeBtn = document.getElementById('notifyMeBtn');
-      const upgradeProBtn = document.getElementById('upgradeProBtn');
-
-      function openProModal() { proModal.classList.add('active'); }
-      function closeProModal() { proModal.classList.remove('active'); }
-
-      upgradeProBtn.addEventListener('click', openProModal);
-      proModalClose.addEventListener('click', closeProModal);
-      proModal.addEventListener('click', e => { if (e.target === proModal) closeProModal(); });
-      document.addEventListener('keydown', e => {
-        if (e.key === 'Escape' && proModal.classList.contains('active')) closeProModal();
-      });
-
-      notifyMeBtn.addEventListener('click', () => {
-        notifyMeBtn.textContent = '✓ Noted!';
-        notifyMeBtn.disabled = true;
+    }
+  
+    function applySession(session) {
+      currentSession = session;
+      currentUser = { id: session.user.id, email: session.user.email };
+      resetUI();
+      updateUserChip();
+      updateUsageBlock();
+      hideSigninModal();
+      syncUsageFromServer();
+      loadChatHistory();
+      queryInput.focus();
+  
+      const md = session.user.user_metadata || {};
+      if (!md.username) {
         setTimeout(() => {
-          closeProModal();
-          setTimeout(() => {
-            notifyMeBtn.textContent = 'Notify Me';
-            notifyMeBtn.disabled = false;
-          }, 400);
-        }, 900);
+          showSigninModal();
+          showView('username');
+          $('usernameInput').value = '';
+          $('usernameError').textContent = '';
+          setTimeout(() => $('usernameInput').focus(), 250);
+        }, 400);
+      }
+    }
+  
+    function clearSession() {
+      currentSession = null;
+      currentUser = null;
+      resetUI();
+      updateUserChip();
+      renderChatHistory();
+      showSigninModal();
+      showView('choose');
+    }
+  
+    function resetUI() {
+      currentChatSessionId = null;
+      chatBody.innerHTML = '';
+      chatInput.value = '';
+      chatInput.style.height = 'auto';
+      queryInput.value = '';
+      hideStatus();
+      clearRetryBubble();
+      closeSidebar();
+      busy = false;
+      if (cooldownTimerId) { clearInterval(cooldownTimerId); cooldownTimerId = null; }
+      cooldownEndsAt = 0;
+      setCooldownPill(0);
+      [chatSendBtn, runBtn].forEach(b => b && b.classList.remove('cooldown', 'loading') || (b && (b.disabled = false)));
+      [chatSendBtn, runBtn].forEach(b => { if (b) { b.disabled = false; b.classList.remove('cooldown', 'loading'); } });
+      chatScreen.classList.remove('active');
+      homeScreen.classList.remove('hidden');
+      document.body.classList.remove('in-chat');
+    }
+  
+    function showView(name) {
+      Object.values(views).forEach(v => v.classList.add('hidden'));
+      views[name].classList.remove('hidden');
+      ['signupError', 'loginError', 'usernameError'].forEach(id => {
+        const el = $(id); if (el) { el.textContent = ''; el.innerHTML = ''; el.style.color = ''; }
       });
-
-      /* ============ DAILY LIMIT ============ */
-      function todayKey() {
-        const d = new Date();
-        return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-      }
-      function usageKey() { return currentUser ? 'scout-usage-' + currentUser.id : null; }
-      function getUsage() {
-        if (!currentUser) return { date: todayKey(), count: 0 };
-        try {
-          const raw = localStorage.getItem(usageKey());
-          if (!raw) return { date: todayKey(), count: 0 };
-          const p = JSON.parse(raw);
-          if (p.date !== todayKey()) return { date: todayKey(), count: 0 };
-          return p;
-        } catch (e) { return { date: todayKey(), count: 0 }; }
-      }
-      function setUsage(u) {
-        if (!currentUser) return;
-        try { localStorage.setItem(usageKey(), JSON.stringify(u)); } catch (e) {}
-      }
-      function remaining() { return Math.max(0, DAILY_LIMIT - getUsage().count); }
-      function updateLimitBadge() { updateUsageBlock(); }
-      function setUsageFromServer(used) {
-        setUsage({ date: todayKey(), count: used });
-        updateLimitBadge();
-      }
-
-      let countdownTimer = null;
-      function startCountdown() {
-        const el = document.getElementById('countdown');
-        function tick() {
-          const now = new Date();
-          const midnight = new Date(); midnight.setHours(24, 0, 0, 0);
-          const diff = Math.max(0, midnight - now);
-          const h = String(Math.floor(diff / 3600000)).padStart(2, '0');
-          const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
-          const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
-          el.textContent = `${h}:${m}:${s}`;
-        }
-        tick();
-        if (countdownTimer) clearInterval(countdownTimer);
-        countdownTimer = setInterval(tick, 1000);
-      }
-      function stopCountdown() {
-        if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
-      }
-
-      /* ============ THEME ============ */
-      const themeToggle = document.getElementById('themeToggle');
-      const setTheme = d => {
-        document.body.classList.toggle('dark', d);
-        try { localStorage.setItem('scout-theme', d ? 'dark' : 'light'); } catch(e){}
-      };
-      let saved = 'light';
-      try { saved = localStorage.getItem('scout-theme') || 'light'; } catch(e){}
-      setTheme(saved === 'dark');
-      themeToggle.addEventListener('click', () => setTheme(!document.body.classList.contains('dark')));
-
-      /* ============ INFO MODAL ============ */
-      const infoBtn = document.getElementById('infoBtn');
-      const infoModal = document.getElementById('infoModal');
-      const modalClose = document.getElementById('modalClose');
-      infoBtn.addEventListener('click', () => infoModal.classList.add('active'));
-      modalClose.addEventListener('click', () => infoModal.classList.remove('active'));
-      infoModal.addEventListener('click', e => { if (e.target === infoModal) infoModal.classList.remove('active'); });
-
-      /* ============ LIMIT MODAL ============ */
-      const limitModal = document.getElementById('limitModal');
-      const limitClose = document.getElementById('limitClose');
-      limitClose.addEventListener('click', () => { limitModal.classList.remove('active'); stopCountdown(); });
-      limitModal.addEventListener('click', e => {
-        if (e.target === limitModal) { limitModal.classList.remove('active'); stopCountdown(); }
-      });
-      document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') {
-          if (infoModal.classList.contains('active')) infoModal.classList.remove('active');
-          if (limitModal.classList.contains('active')) { limitModal.classList.remove('active'); stopCountdown(); }
-        }
-      });
-      function showLimitModal() { limitModal.classList.add('active'); startCountdown(); }
-
-      /* ============ SCREEN SWITCHING ============ */
-      const homeScreen = document.getElementById('homeScreen');
-      const chatScreen = document.getElementById('chatScreen');
-      const backBtn = document.getElementById('backBtn');
-
-      function goToChat() {
-        homeScreen.classList.add('hidden');
-        chatScreen.classList.add('active');
-        document.body.classList.add('in-chat');
-        setTimeout(() => chatInput.focus(), 500);
-      }
-
-      function goToHome() {
-        chatScreen.classList.remove('active');
-        homeScreen.classList.remove('hidden');
-        document.body.classList.remove('in-chat');
-        queryInput.value = '';
-        setTimeout(() => queryInput.focus(), 500);
-      }
-
-      backBtn.addEventListener('click', () => {
-        currentChatSessionId = null;
-        chatBody.innerHTML = '';
-        goToHome();
-      });
-
-      /* ============ CHAT UI ============ */
-      const chatBody = document.getElementById('chatBody');
-      const chatInput = document.getElementById('chatInput');
-      const chatSendBtn = document.getElementById('chatSendBtn');
-      const chatScroll = document.getElementById('chatScroll');
-      const cooldownPill = document.getElementById('cooldownPill');
-
-      let scrollScheduled = false;
-      function scrollToBottom() {
-        if (scrollScheduled) return;
-        scrollScheduled = true;
-        requestAnimationFrame(() => {
-          chatScroll.scrollTop = chatScroll.scrollHeight;
-          scrollScheduled = false;
+    }
+    const showSigninModal = () => signinModal.classList.add('active');
+    const hideSigninModal = () => signinModal.classList.remove('active');
+  
+    function getUsername() {
+      if (!currentSession) return '';
+      const md = currentSession.user.user_metadata || {};
+      return md.username || md.full_name || '';
+    }
+  
+    function updateUserChip() {
+      if (currentUser && currentUser.email) {
+        const name = getUsername();
+        userChip.textContent = (name ? name.charAt(0) : currentUser.email.charAt(0) || '?').toUpperCase();
+        userChip.title = name ? `${name} · ${currentUser.email}` : currentUser.email;
+        userChip.style.display = 'flex';
+      } else userChip.style.display = 'none';
+    }
+  
+    /* ============================================================
+       USAGE
+       ============================================================ */
+    function todayKey() {
+      const d = new Date();
+      return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+    }
+    const usageKey = () => currentUser ? 'scout-usage-' + currentUser.id : null;
+  
+    function getUsage() {
+      if (!currentUser) return { date: todayKey(), count: 0 };
+      try {
+        const raw = localStorage.getItem(usageKey());
+        if (!raw) return { date: todayKey(), count: 0 };
+        const p = JSON.parse(raw);
+        return p.date !== todayKey() ? { date: todayKey(), count: 0 } : p;
+      } catch { return { date: todayKey(), count: 0 }; }
+    }
+    function setUsage(u) { if (currentUser) try { localStorage.setItem(usageKey(), JSON.stringify(u)); } catch {} }
+    function remaining() { return Math.max(0, DAILY_LIMIT - getUsage().count); }
+  
+    function setUsageFromServer(used) {
+      if (typeof used !== 'number') return;
+      setUsage({ date: todayKey(), count: used });
+      updateUsageBlock();
+    }
+  
+    function updateUsageBlock() {
+      const block = $('usageBlock');
+      const leftEl = $('usageLeft');
+      const left = Math.max(0, DAILY_LIMIT - getUsage().count);
+      leftEl.textContent = left;
+      block.classList.remove('warn', 'full');
+      if (left === 0) block.classList.add('full');
+      else if (left === 1) block.classList.add('warn');
+    }
+  
+    async function syncUsageFromServer() {
+      const token = await getAccessToken();
+      if (!token) return;
+      try {
+        const res = await fetch('/api/usage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         });
+        if (res.ok) {
+          const data = await res.json();
+          if (typeof data.used === 'number') setUsageFromServer(data.used);
+        }
+      } catch {}
+    }
+  
+    /* ============================================================
+       SIDEBAR / HISTORY
+       ============================================================ */
+    function openSidebar() { sidebarOpen = true; sidebar.classList.add('open'); sidebarOverlay.classList.add('active'); }
+    function closeSidebar() { sidebarOpen = false; sidebar.classList.remove('open'); sidebarOverlay.classList.remove('active'); }
+  
+    $('sidebarToggle').addEventListener('click', () => sidebarOpen ? closeSidebar() : openSidebar());
+    $('sidebarClose').addEventListener('click', closeSidebar);
+    sidebarOverlay.addEventListener('click', closeSidebar);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && sidebarOpen) closeSidebar(); });
+  
+    $('newChatBtn').addEventListener('click', () => {
+      currentChatSessionId = null;
+      chatBody.innerHTML = '';
+      goToHome();
+      closeSidebar();
+      renderChatHistory();
+    });
+  
+    function renderHistorySkeleton() {
+      sidebarList.innerHTML = '';
+      for (let i = 0; i < 4; i++) {
+        const el = document.createElement('div');
+        el.className = 'skeleton-item';
+        el.innerHTML = `<div class="skeleton skeleton-icon"></div><div class="skeleton-lines"><div class="skeleton skeleton-line-1"></div><div class="skeleton skeleton-line-2"></div></div>`;
+        sidebarList.appendChild(el);
       }
-      chatInput.addEventListener('input', () => {
-        chatInput.style.height = 'auto';
-        chatInput.style.height = Math.min(chatInput.scrollHeight, 130) + 'px';
-      }, { passive: true });
-
-      const COPY_SVG = '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
-      const EDIT_SVG = '<svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
-
-      /* -------- User bubble with copy + edit -------- */
-      function addUserBubble(text) {
-        const msg = document.createElement('div');
-        msg.className = 'msg user';
-        const wrap = document.createElement('div');
-        wrap.className = 'bubble-wrap';
-        const bubble = document.createElement('div');
-        bubble.className = 'bubble';
-        bubble.textContent = text;
-
-        const actions = document.createElement('div');
-        actions.className = 'msg-actions user-actions';
-
-        const copyBtn = document.createElement('button');
-        copyBtn.type = 'button';
-        copyBtn.innerHTML = COPY_SVG;
-        copyBtn.title = 'Copy';
-        copyBtn.setAttribute('aria-label', 'Copy prompt');
-        copyBtn.addEventListener('click', () => {
-          navigator.clipboard.writeText(bubble.textContent || '').catch(() => {});
-        });
-
-        const editBtn = document.createElement('button');
-        editBtn.type = 'button';
-        editBtn.innerHTML = EDIT_SVG;
-        editBtn.title = 'Edit & Regenerate';
-        editBtn.setAttribute('aria-label', 'Edit prompt');
-        editBtn.addEventListener('click', () => enterEditMode(msg));
-
-        actions.appendChild(copyBtn);
-        actions.appendChild(editBtn);
-
-        wrap.appendChild(bubble);
-        wrap.appendChild(actions);
-        msg.appendChild(wrap);
-        chatBody.appendChild(msg);
-        scrollToBottom();
-        return msg;
+    }
+  
+    async function loadChatHistory() {
+      if (!currentUser || !sb) return;
+      renderHistorySkeleton();
+      try {
+        const { data, error } = await sb.from('chat_sessions')
+          .select('id, title, updated_at')
+          .order('updated_at', { ascending: false })
+          .limit(60);
+        if (error) throw error;
+        chatSessionsCache = data || [];
+      } catch (e) { console.error('Failed to load chat history:', e); chatSessionsCache = []; }
+      renderChatHistory();
+    }
+  
+    function relativeTime(iso) {
+      try {
+        const sec = Math.floor(Math.max(0, Date.now() - new Date(iso).getTime()) / 1000);
+        if (sec < 60) return 'just now';
+        const min = Math.floor(sec / 60); if (min < 60) return `${min}m ago`;
+        const hr = Math.floor(min / 60); if (hr < 24) return `${hr}h ago`;
+        const day = Math.floor(hr / 24); if (day < 7) return `${day}d ago`;
+        return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      } catch { return ''; }
+    }
+  
+    const EMPTY_SVG = `<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+  
+    function renderChatHistory() {
+      sidebarList.innerHTML = '';
+      if (!currentUser) {
+        sidebarList.innerHTML = `<div class="sidebar-empty">${EMPTY_SVG}Sign in to save your chat history.</div>`;
+        return;
       }
-
-      /* -------- Edit in place -------- */
-      function enterEditMode(msgEl) {
-        if (busy) return;
-        const wrap = msgEl.querySelector('.bubble-wrap');
-        if (!wrap) return;
-        if (wrap.querySelector('.edit-box')) return;
-        const bubble = wrap.querySelector('.bubble');
-        const actions = wrap.querySelector('.msg-actions');
-        const originalText = bubble.textContent || '';
-
-        if (actions) actions.style.display = 'none';
-        bubble.style.display = 'none';
-
-        const editBox = document.createElement('div');
-        editBox.className = 'edit-box';
-        editBox.innerHTML = `
-          <textarea class="edit-textarea" spellcheck="false"></textarea>
-          <div class="edit-actions">
-            <button type="button" class="cancel-edit">Cancel</button>
-            <button type="button" class="save-regen">Save &amp; Regenerate</button>
+      if (!chatSessionsCache.length) {
+        sidebarList.innerHTML = `<div class="sidebar-empty">${EMPTY_SVG}No chats yet.<br>Start a research query to save one.</div>`;
+        return;
+      }
+      chatSessionsCache.forEach(sess => {
+        const item = document.createElement('div');
+        item.className = 'history-item' + (sess.id === currentChatSessionId ? ' active' : '');
+        item.innerHTML = `
+          <div class="history-icon">${EMPTY_SVG}</div>
+          <div class="history-meta">
+            <div class="history-title"></div>
+            <div class="history-time"></div>
           </div>
-        `;
-        const ta = editBox.querySelector('textarea');
-        ta.value = originalText;
-        wrap.appendChild(editBox);
-
-        const cancelBtn = editBox.querySelector('.cancel-edit');
-        const saveBtn = editBox.querySelector('.save-regen');
-
-        cancelBtn.addEventListener('click', () => {
-          editBox.remove();
-          bubble.style.display = '';
-          if (actions) actions.style.display = '';
-        });
-
-        saveBtn.addEventListener('click', async () => {
-          const newText = ta.value.trim();
-          if (!newText) { ta.focus(); return; }
-          if (newText === originalText.trim()) {
-            editBox.remove();
-            bubble.style.display = '';
-            if (actions) actions.style.display = '';
-            return;
-          }
-          saveBtn.disabled = true;
-          cancelBtn.disabled = true;
-          saveBtn.textContent = 'Regenerating…';
-          bubble.textContent = newText;
-          editBox.remove();
-          bubble.style.display = '';
-          if (actions) actions.style.display = '';
-          await regenerateFrom(msgEl, newText);
-        });
-
-        ta.focus();
-        ta.setSelectionRange(ta.value.length, ta.value.length);
-      }
-
-      /* -------- Regenerate from an edited user prompt -------- */
-      async function regenerateFrom(userMsgEl, newText) {
-        if (busy) return;
-        if (remaining() <= 0) { showLimitModal(); return; }
-
-        let next = userMsgEl.nextElementSibling;
-        while (next) {
-          const toRemove = next;
-          next = next.nextElementSibling;
-          toRemove.remove();
+          <button class="history-delete" aria-label="Delete chat">
+            <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          </button>`;
+        item.querySelector('.history-title').textContent = sess.title || 'Untitled';
+        item.querySelector('.history-time').textContent = relativeTime(sess.updated_at);
+        item.addEventListener('click', e => { if (!e.target.closest('.history-delete')) loadChatSession(sess.id); });
+        item.querySelector('.history-delete').addEventListener('click', e => { e.stopPropagation(); deleteChatSession(sess.id); });
+        sidebarList.appendChild(item);
+      });
+    }
+  
+    async function createChatSession(title) {
+      if (!currentUser || !sb) return null;
+      try {
+        const { data, error } = await sb.from('chat_sessions')
+          .insert({ user_id: currentUser.id, title: (title || 'New Chat').slice(0, 100) })
+          .select().single();
+        if (error) throw error;
+        currentChatSessionId = data.id;
+        chatSessionsCache.unshift({ id: data.id, title: data.title, updated_at: data.updated_at });
+        renderChatHistory();
+        return data.id;
+      } catch (e) { console.error('Failed to create chat session:', e); return null; }
+    }
+  
+    async function saveMessage(sessionId, role, content, sources) {
+      if (!sessionId || !sb) return null;
+      try {
+        const { data, error } = await sb.from('chat_messages').insert({
+          session_id: sessionId, role, content, sources: sources || null,
+        }).select().single();
+        if (error) throw error;
+        const now = new Date().toISOString();
+        await sb.from('chat_sessions').update({ updated_at: now }).eq('id', sessionId);
+        const s = chatSessionsCache.find(x => x.id === sessionId);
+        if (s) s.updated_at = now;
+        chatSessionsCache.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+        renderChatHistory();
+        return data;
+      } catch (e) { console.error('Failed to save message:', e); return null; }
+    }
+  
+    async function deleteChatSession(sessionId) {
+      if (!confirm('Delete this chat? This cannot be undone.')) return;
+      try {
+        await sb.from('chat_sessions').delete().eq('id', sessionId);
+        chatSessionsCache = chatSessionsCache.filter(s => s.id !== sessionId);
+        if (currentChatSessionId === sessionId) {
+          currentChatSessionId = null;
+          chatBody.innerHTML = '';
+          goToHome();
         }
-
-        busy = true;
-        setGoBtnsDisabled(true);
-
-        const sessionId = currentChatSessionId;
-        if (sessionId) {
-          await saveMessage(sessionId, 'user', newText);
-        }
-
-        await streamBackend(
-          newText,
-          (message) => showStatus(message),
-          (evt) => {
-            hideStatus();
-            const report = evt.report || 'No report generated.';
-            const sources = evt.sources || [];
-            addAssistantBubble(report, sources, false);
-            if (typeof evt.used === 'number') setUsageFromServer(evt.used);
-            if (sessionId) saveMessage(sessionId, 'assistant', report, sources);
-          },
-          (err) => {
-            hideStatus();
-            if (err === 'rateLimited') {
-              addAssistantBubble("You've reached the daily limit of 3 reports for this account. Please come back tomorrow.", [], true);
-              showLimitModal();
-            } else if (err !== 'unauthorized') {
-              addAssistantBubble(`Something went wrong: ${err}`, [], true);
-            }
-          }
-        );
-
-        busy = false;
-        setGoBtnsDisabled(false);
-        startCooldown();
-      }
-
-      /* -------- Report parsing helpers -------- */
-      const HEADING_RE = /^\s*\*\*(.+?)\*\*\s*$/;
-      const BULLET_RE = /^\s*[-•*]\s+(.+)$/;
-
-      function parseReportLine(line) {
-        if (line.trim() === '') return { type: 'spacer' };
-        const h = line.match(HEADING_RE);
-        if (h) return { type: 'heading', text: h[1].trim() };
-        const b = line.match(BULLET_RE);
-        if (b) return { type: 'bullet', text: b[1].trim() };
-        return { type: 'text', text: line };
-      }
-
-      /* -------- Linkify: turn URLs in text nodes into anchors -------- */
-      const URL_RE = /(https?:\/\/[^\s<>"']+)/g;
-      function linkifySubtree(root) {
-        if (!root) return;
-        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
-        const targets = [];
-        let node;
-        while ((node = walker.nextNode())) {
-          const parentTag = node.parentNode && node.parentNode.nodeName;
-          if (parentTag === 'A') continue;
-          URL_RE.lastIndex = 0;
-          if (URL_RE.test(node.nodeValue)) targets.push(node);
-        }
-        targets.forEach(textNode => {
-          const text = textNode.nodeValue;
-          const parent = textNode.parentNode;
-          const frag = document.createDocumentFragment();
-          let lastIdx = 0;
-          let m;
-          URL_RE.lastIndex = 0;
-          while ((m = URL_RE.exec(text)) !== null) {
-            if (m.index > lastIdx) frag.appendChild(document.createTextNode(text.slice(lastIdx, m.index)));
-            const a = document.createElement('a');
-            a.href = m[0];
-            a.target = '_blank';
-            a.rel = 'noopener noreferrer';
-            a.textContent = m[0];
-            a.className = 'report-link';
-            frag.appendChild(a);
-            lastIdx = m.index + m[0].length;
-          }
-          if (lastIdx < text.length) frag.appendChild(document.createTextNode(text.slice(lastIdx)));
-          parent.replaceChild(frag, textNode);
+        renderChatHistory();
+      } catch (e) { console.error('Failed to delete chat:', e); alert('Could not delete chat.'); }
+    }
+  
+    async function loadChatSession(sessionId) {
+      if (!sb) return;
+      try {
+        const { data, error } = await sb.from('chat_messages').select('*')
+          .eq('session_id', sessionId).order('created_at', { ascending: true });
+        if (error) throw error;
+        currentChatSessionId = sessionId;
+        chatBody.innerHTML = '';
+        (data || []).forEach(m => {
+          if (m.role === 'user') addUserBubble(m.content);
+          else addAssistantBubbleStatic(m.content, m.sources);
         });
-      }
-
-      /* -------- Typewriter -------- */
-      let typewriterToken = 0;
-
-      function typewriteInto(parent, rawText, onProgress, onComplete) {
-        const myToken = ++typewriterToken;
-        const text = rawText || '';
-        const lines = text.split('\n');
-        const targets = [];
-
-        lines.forEach(line => {
-          const parsed = parseReportLine(line);
-          if (parsed.type === 'spacer') {
-            const spacer = document.createElement('div');
-            spacer.style.height = '.35rem';
-            parent.appendChild(spacer);
-            return;
-          }
-          const el = document.createElement('div');
-          if (parsed.type === 'heading') el.className = 'report-heading';
-          else if (parsed.type === 'bullet') el.className = 'report-bullet';
-          el.textContent = '';
-          targets.push({ el, fullText: parsed.text });
-          parent.appendChild(el);
+        closeSidebar();
+        goToChat();
+        renderChatHistory();
+      } catch (e) { console.error('Failed to load chat:', e); alert('Could not load that chat.'); }
+    }
+  
+    /* ============================================================
+       SIGNUP / LOGIN
+       ============================================================ */
+    (function emailValidation() {
+      const emailInput = $('signupEmail');
+      let t = null;
+      emailInput.addEventListener('input', () => {
+        const val = emailInput.value.trim().toLowerCase();
+        clearTimeout(t);
+        if (!val || val.length < 5 || !val.includes('@')) { emailInput.style.borderColor = ''; emailInput.style.boxShadow = ''; return; }
+        t = setTimeout(async () => {
+          try {
+            const res = await fetch('/api/validate-email', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: val }),
+            });
+            const data = await res.json();
+            if (data.valid) { emailInput.style.borderColor = '#22c55e'; emailInput.style.boxShadow = '0 0 0 3px rgba(34,197,94,.10)'; }
+            else { emailInput.style.borderColor = '#ef4444'; emailInput.style.boxShadow = '0 0 0 3px rgba(239,68,68,.10)'; }
+          } catch {}
+        }, 600);
+      });
+      emailInput.addEventListener('blur', () => { emailInput.style.borderColor = ''; emailInput.style.boxShadow = ''; });
+    })();
+  
+    $('showSignupBtn').addEventListener('click', () => { showView('signup'); setTimeout(() => $('signupEmail').focus(), 200); });
+    $('signupBack').addEventListener('click', () => showView('choose'));
+    $('showLoginBtn').addEventListener('click', () => { showView('login'); setTimeout(() => $('loginEmail').focus(), 200); });
+    $('loginBack').addEventListener('click', () => showView('choose'));
+  
+    $('signupForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const err = $('signupError'); err.style.color = ''; err.innerHTML = '';
+      const email = $('signupEmail').value.trim().toLowerCase();
+      const password = $('signupPassword').value;
+      const btn = $('signupSubmit');
+      if (!email || !password) { err.textContent = 'Please fill in all fields.'; return; }
+      if (password.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
+      btn.disabled = true; btn.textContent = 'Verifying email…';
+  
+      try {
+        const vr = await fetch('/api/validate-email', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
         });
-
-        const totalChars = targets.reduce((s, t) => s + t.fullText.length, 0);
-        if (totalChars === 0) {
+        const vdata = await vr.json();
+        if (!vdata.valid) {
+          if (vdata.suggestion) {
+            err.innerHTML = `${vdata.reason} <a href="#" id="applySuggestion" style="color:inherit;text-decoration:underline;font-weight:700;">Use it</a>`;
+            $('applySuggestion')?.addEventListener('click', ev => { ev.preventDefault(); $('signupEmail').value = vdata.suggestion; err.innerHTML = ''; });
+          } else err.textContent = vdata.reason || 'Invalid email address.';
+          btn.disabled = false; btn.textContent = 'Create Account'; return;
+        }
+      } catch (e) { console.warn('Email validation unreachable, continuing:', e); }
+  
+      btn.textContent = 'Creating account…';
+      try {
+        const { data, error } = await sb.auth.signUp({ email, password });
+        if (error) throw error;
+        if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+          err.textContent = 'An account with this email already exists. Please log in instead.'; return;
+        }
+        if (data.session) applySession(data.session);
+        else {
+          const { data: loginData, error: loginErr } = await sb.auth.signInWithPassword({ email, password });
+          if (loginErr) { err.textContent = 'Account created but sign-in failed. Please try logging in.'; return; }
+          applySession(loginData.session);
+        }
+      } catch (e) {
+        const msg = (e && e.message) || 'Signup failed. Please try again.';
+        if (/already registered|already exists|user already/i.test(msg)) err.textContent = 'An account with this email already exists. Please log in instead.';
+        else if (/email not confirmed/i.test(msg)) err.textContent = 'Email confirmation is still ON in Supabase. Please turn it off.';
+        else err.textContent = msg;
+      } finally { btn.disabled = false; btn.textContent = 'Create Account'; }
+    });
+  
+    $('loginForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const err = $('loginError'); err.textContent = '';
+      const email = $('loginEmail').value.trim();
+      const password = $('loginPassword').value;
+      const btn = $('loginSubmit');
+      if (!email || !password) { err.textContent = 'Please fill in all fields.'; return; }
+      btn.disabled = true; btn.textContent = 'Signing in…';
+      try {
+        const { data, error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        applySession(data.session);
+      } catch (e) {
+        const msg = (e && e.message) || 'Sign in failed.';
+        if (/invalid login credentials/i.test(msg)) err.textContent = 'Incorrect email or password.';
+        else if (/email not confirmed/i.test(msg)) err.textContent = 'Email confirmation is still ON in Supabase. Please turn it off.';
+        else err.textContent = msg;
+      } finally { btn.disabled = false; btn.textContent = 'Sign In'; }
+    });
+  
+    async function saveUsername(name) {
+      const { error } = await sb.auth.updateUser({ data: { username: name } });
+      if (error) throw error;
+      const { data: { session } } = await sb.auth.getSession();
+      if (session) currentSession = session;
+      updateUserChip();
+      updateProfileDisplay();
+    }
+  
+    $('usernameForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const err = $('usernameError'); const btn = $('usernameSubmit');
+      const val = $('usernameInput').value.trim();
+      err.textContent = '';
+      if (!val) { err.textContent = 'Please enter a name.'; return; }
+      btn.disabled = true; btn.textContent = 'Saving…';
+      try { await saveUsername(val); hideSigninModal(); queryInput.focus(); }
+      catch (e2) { err.textContent = e2.message || 'Could not save.'; }
+      finally { btn.disabled = false; btn.textContent = 'Continue'; }
+    });
+  
+    $('skipUsername').addEventListener('click', async () => {
+      const fallback = (currentUser?.email || '').split('@')[0] || 'Scout User';
+      try { await saveUsername(fallback); } catch {}
+      hideSigninModal();
+      queryInput.focus();
+    });
+  
+    /* ============================================================
+       PROFILE
+       ============================================================ */
+    function getAccountType() {
+      const md = currentSession?.user?.user_metadata || {};
+      return md.plan === 'pro' ? 'Pro' : 'Free';
+    }
+  
+    function updateProfileDisplay() {
+      const name = getUsername();
+      const email = currentUser ? currentUser.email : '';
+      const type = getAccountType();
+      $('profileNameText').textContent = name || 'Scout User';
+      $('profileEmail').textContent = email;
+      $('fieldName').textContent = name || 'Not set';
+      $('fieldEmail').textContent = email;
+      $('fieldAccountType').textContent = type;
+      $('profileAvatar').textContent = (name ? name.charAt(0) : email.charAt(0) || 'S').toUpperCase();
+      const badge = $('accountBadge');
+      badge.textContent = type;
+      badge.classList.toggle('pro', type === 'Pro');
+      const up = $('upgradeProFromProfile');
+      up.textContent = type === 'Pro' ? 'Active' : 'Upgrade';
+      up.disabled = type === 'Pro';
+    }
+  
+    function closeProfile() { profileModal.classList.remove('active'); }
+    userChip.addEventListener('click', () => { if (currentUser) { updateProfileDisplay(); profileModal.classList.add('active'); } });
+    $('profileClose').addEventListener('click', closeProfile);
+    profileModal.addEventListener('click', e => { if (e.target === profileModal) closeProfile(); });
+  
+    $('upgradeProFromProfile').addEventListener('click', () => { closeProfile(); openProModal(); });
+  
+    $('editNameBtn').addEventListener('click', () => {
+      closeProfile();
+      $('nameInput').value = getUsername();
+      $('nameError').textContent = '';
+      nameModal.classList.add('active');
+      setTimeout(() => $('nameInput').focus(), 200);
+    });
+    $('nameClose').addEventListener('click', () => nameModal.classList.remove('active'));
+    nameModal.addEventListener('click', e => { if (e.target === nameModal) nameModal.classList.remove('active'); });
+  
+    $('nameForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const err = $('nameError'); const btn = $('nameSubmit');
+      const val = $('nameInput').value.trim();
+      err.textContent = '';
+      if (!val) { err.textContent = 'Please enter a name.'; return; }
+      btn.disabled = true; btn.textContent = 'Saving…';
+      try { await saveUsername(val); nameModal.classList.remove('active'); }
+      catch (e2) { err.textContent = e2.message || 'Could not save.'; }
+      finally { btn.disabled = false; btn.textContent = 'Save'; }
+    });
+  
+    $('changePasswordBtn').addEventListener('click', () => {
+      closeProfile();
+      $('newPassword').value = '';
+      $('confirmPassword').value = '';
+      const err = $('passwordError'); err.textContent = ''; err.style.color = '';
+      passwordModal.classList.add('active');
+      setTimeout(() => $('newPassword').focus(), 200);
+    });
+    $('passwordClose').addEventListener('click', () => passwordModal.classList.remove('active'));
+    passwordModal.addEventListener('click', e => { if (e.target === passwordModal) passwordModal.classList.remove('active'); });
+  
+    $('passwordForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const err = $('passwordError'); const btn = $('passwordSubmit');
+      const p1 = $('newPassword').value; const p2 = $('confirmPassword').value;
+      err.style.color = ''; err.textContent = '';
+      if (p1.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
+      if (p1 !== p2) { err.textContent = 'Passwords do not match.'; return; }
+      btn.disabled = true; btn.textContent = 'Updating…';
+      try {
+        const { error } = await sb.auth.updateUser({ password: p1 });
+        if (error) throw error;
+        err.style.color = '#16a34a'; err.textContent = 'Password updated successfully.';
+        setTimeout(() => { err.style.color = ''; passwordModal.classList.remove('active'); }, 1400);
+      } catch (e2) { err.textContent = e2.message || 'Could not update password.'; }
+      finally { btn.disabled = false; btn.textContent = 'Update Password'; }
+    });
+  
+    $('signOutBtn').addEventListener('click', async () => {
+      if (!confirm(`Sign out of ${currentUser.email}?`)) return;
+      closeProfile();
+      try { await sb.auth.signOut(); } catch {}
+      clearSession();
+    });
+  
+    $('deleteAccountBtn').addEventListener('click', async () => {
+      if (!currentUser) { alert('No active session. Please sign in again.'); return; }
+      if (!confirm(`Delete account for ${currentUser.email}?\n\nThis will permanently erase your account, credentials, chat history, and usage data. This cannot be undone.\n\nContinue?`)) return;
+      const btn = $('deleteAccountBtn');
+      const label = btn.textContent;
+      btn.disabled = true; btn.textContent = 'Deleting…';
+      try {
+        const token = await getAccessToken();
+        if (!token) throw new Error('Session expired. Please sign in again.');
+        const res = await fetch('/api/delete-account', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        });
+        let data;
+        try { data = await res.json(); } catch { throw new Error(`Server returned ${res.status} (invalid response)`); }
+        if (!res.ok || !data.success) throw new Error(data.error || `Server returned ${res.status}`);
+        closeProfile();
+        try { await sb.auth.signOut(); } catch {}
+        clearSession();
+        alert('Your account has been permanently deleted.');
+      } catch (err) {
+        alert('Could not delete account.\n\n' + (err.message || 'Unknown error.') + '\n\nTry signing out and back in, then retry.');
+        btn.disabled = false; btn.textContent = label;
+      }
+    });
+  
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { profileModal.classList.remove('active'); passwordModal.classList.remove('active'); nameModal.classList.remove('active'); }
+    });
+  
+    /* ============================================================
+       PRO MODAL
+       ============================================================ */
+    function openProModal() { proModal.classList.add('active'); }
+    function closeProModal() { proModal.classList.remove('active'); }
+    $('upgradeProBtn').addEventListener('click', openProModal);
+    $('proModalClose').addEventListener('click', closeProModal);
+    proModal.addEventListener('click', e => { if (e.target === proModal) closeProModal(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && proModal.classList.contains('active')) closeProModal(); });
+    $('notifyMeBtn').addEventListener('click', () => {
+      const btn = $('notifyMeBtn');
+      btn.textContent = '✓ Noted!'; btn.disabled = true;
+      setTimeout(() => { closeProModal(); setTimeout(() => { btn.textContent = 'Notify Me'; btn.disabled = false; }, 400); }, 900);
+    });
+  
+    /* ============================================================
+       THEME / INFO / LIMIT
+       ============================================================ */
+    const themeToggle = $('themeToggle');
+    const setTheme = d => { document.body.classList.toggle('dark', d); try { localStorage.setItem('scout-theme', d ? 'dark' : 'light'); } catch {} };
+    let saved = 'light';
+    try { saved = localStorage.getItem('scout-theme') || 'light'; } catch {}
+    setTheme(saved === 'dark');
+    themeToggle.addEventListener('click', () => setTheme(!document.body.classList.contains('dark')));
+  
+    $('infoBtn').addEventListener('click', () => infoModal.classList.add('active'));
+    $('modalClose').addEventListener('click', () => infoModal.classList.remove('active'));
+    infoModal.addEventListener('click', e => { if (e.target === infoModal) infoModal.classList.remove('active'); });
+  
+    let countdownTimer = null;
+    function startCountdown() {
+      const el = $('countdown');
+      const tick = () => {
+        const now = new Date();
+        const midnight = new Date(); midnight.setHours(24, 0, 0, 0);
+        const diff = Math.max(0, midnight - now);
+        const h = String(Math.floor(diff / 3600000)).padStart(2, '0');
+        const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
+        const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
+        el.textContent = `${h}:${m}:${s}`;
+      };
+      tick();
+      if (countdownTimer) clearInterval(countdownTimer);
+      countdownTimer = setInterval(tick, 1000);
+    }
+    function stopCountdown() { if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; } }
+    function showLimitModal() { limitModal.classList.add('active'); startCountdown(); }
+  
+    $('limitClose').addEventListener('click', () => { limitModal.classList.remove('active'); stopCountdown(); });
+    limitModal.addEventListener('click', e => { if (e.target === limitModal) { limitModal.classList.remove('active'); stopCountdown(); } });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        infoModal.classList.remove('active');
+        if (limitModal.classList.contains('active')) { limitModal.classList.remove('active'); stopCountdown(); }
+      }
+    });
+  
+    /* ============================================================
+       SCREEN SWITCHING
+       ============================================================ */
+    function goToChat() {
+      homeScreen.classList.add('hidden');
+      chatScreen.classList.add('active');
+      document.body.classList.add('in-chat');
+      setTimeout(() => chatInput.focus(), 500);
+    }
+    function goToHome() {
+      chatScreen.classList.remove('active');
+      homeScreen.classList.remove('hidden');
+      document.body.classList.remove('in-chat');
+      queryInput.value = '';
+      setTimeout(() => queryInput.focus(), 500);
+    }
+    $('backBtn').addEventListener('click', () => {
+      currentChatSessionId = null;
+      chatBody.innerHTML = '';
+      goToHome();
+    });
+  
+    /* ============================================================
+       CHAT RENDERING
+       ============================================================ */
+    const COPY_SVG = '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    const EDIT_SVG = '<svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+    const HEADING_RE = /^\s*\*\*(.+?)\*\*\s*$/;
+    const BULLET_RE = /^\s*[-•*]\s+(.+)$/;
+    const URL_RE = /(https?:\/\/[^\s<>"']+)/g;
+  
+    let scrollScheduled = false;
+    function scrollToBottom() {
+      if (scrollScheduled) return;
+      scrollScheduled = true;
+      requestAnimationFrame(() => { chatScroll.scrollTop = chatScroll.scrollHeight; scrollScheduled = false; });
+    }
+  
+    chatInput.addEventListener('input', () => {
+      chatInput.style.height = 'auto';
+      chatInput.style.height = Math.min(chatInput.scrollHeight, 130) + 'px';
+    }, { passive: true });
+  
+    function makeAvatar() {
+      const av = document.createElement('img');
+      av.className = 'avatar scout-logo-img';
+      av.src = 'scout-logo.png';
+      av.alt = 'Scout';
+      return av;
+    }
+  
+    function addUserBubble(text) {
+      const msg = document.createElement('div');
+      msg.className = 'msg user';
+      const wrap = document.createElement('div');
+      wrap.className = 'bubble-wrap';
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.textContent = text;
+  
+      const actions = document.createElement('div');
+      actions.className = 'msg-actions user-actions';
+      const copyBtn = document.createElement('button');
+      copyBtn.type = 'button'; copyBtn.innerHTML = COPY_SVG; copyBtn.title = 'Copy';
+      copyBtn.addEventListener('click', () => navigator.clipboard.writeText(bubble.textContent || '').catch(() => {}));
+      const editBtn = document.createElement('button');
+      editBtn.type = 'button'; editBtn.innerHTML = EDIT_SVG; editBtn.title = 'Edit & Regenerate';
+      editBtn.addEventListener('click', () => enterEditMode(msg));
+      actions.append(copyBtn, editBtn);
+      wrap.append(bubble, actions);
+      msg.appendChild(wrap);
+      chatBody.appendChild(msg);
+      scrollToBottom();
+      return msg;
+    }
+  
+    function enterEditMode(msgEl) {
+      if (busy) return;
+      const wrap = msgEl.querySelector('.bubble-wrap');
+      if (!wrap || wrap.querySelector('.edit-box')) return;
+      const bubble = wrap.querySelector('.bubble');
+      const actions = wrap.querySelector('.msg-actions');
+      const originalText = bubble.textContent || '';
+      if (actions) actions.style.display = 'none';
+      bubble.style.display = 'none';
+  
+      const editBox = document.createElement('div');
+      editBox.className = 'edit-box';
+      editBox.innerHTML = `<textarea class="edit-textarea" spellcheck="false"></textarea><div class="edit-actions"><button type="button" class="cancel-edit">Cancel</button><button type="button" class="save-regen">Save &amp; Regenerate</button></div>`;
+      const ta = editBox.querySelector('textarea');
+      ta.value = originalText;
+      wrap.appendChild(editBox);
+      const cancelBtn = editBox.querySelector('.cancel-edit');
+      const saveBtn = editBox.querySelector('.save-regen');
+  
+      cancelBtn.addEventListener('click', () => {
+        editBox.remove(); bubble.style.display = ''; if (actions) actions.style.display = '';
+      });
+  
+      saveBtn.addEventListener('click', async () => {
+        const newText = ta.value.trim();
+        if (!newText) { ta.focus(); return; }
+        if (newText === originalText.trim()) {
+          editBox.remove(); bubble.style.display = ''; if (actions) actions.style.display = ''; return;
+        }
+        saveBtn.disabled = true; cancelBtn.disabled = true; saveBtn.textContent = 'Regenerating…';
+        bubble.textContent = newText;
+        editBox.remove(); bubble.style.display = ''; if (actions) actions.style.display = '';
+        await regenerateFrom(msgEl, newText);
+      });
+  
+      ta.focus();
+      ta.setSelectionRange(ta.value.length, ta.value.length);
+    }
+  
+    async function regenerateFrom(userMsgEl, newText) {
+      if (busy) return;
+      if (remaining() <= 0) { showLimitModal(); return; }
+      let next = userMsgEl.nextElementSibling;
+      while (next) { const r = next; next = next.nextElementSibling; r.remove(); }
+  
+      busy = true;
+      setGoBtnsDisabled(true);
+      const sessionId = currentChatSessionId;
+      if (sessionId) await saveMessage(sessionId, 'user', newText);
+  
+      const result = await streamBackendWithRetry(newText, showStatus);
+      hideStatus();
+      if (result) {
+        clearRetryBubble();
+        addAssistantBubble(result.report, result.sources, false);
+        setUsageFromServer(result.used);
+        if (sessionId) await saveMessage(sessionId, 'assistant', result.report, result.sources);
+      }
+  
+      busy = false;
+      setGoBtnsDisabled(false);
+      startCooldown();
+    }
+  
+    function parseReportLine(line) {
+      if (line.trim() === '') return { type: 'spacer' };
+      const h = line.match(HEADING_RE);
+      if (h) return { type: 'heading', text: h[1].trim() };
+      const b = line.match(BULLET_RE);
+      if (b) return { type: 'bullet', text: b[1].trim() };
+      return { type: 'text', text: line };
+    }
+  
+    function linkifySubtree(root) {
+      if (!root) return;
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+      const targets = [];
+      let node;
+      while ((node = walker.nextNode())) {
+        if (node.parentNode && node.parentNode.nodeName === 'A') continue;
+        URL_RE.lastIndex = 0;
+        if (URL_RE.test(node.nodeValue)) targets.push(node);
+      }
+      targets.forEach(textNode => {
+        const text = textNode.nodeValue;
+        const parent = textNode.parentNode;
+        const frag = document.createDocumentFragment();
+        let lastIdx = 0; let m;
+        URL_RE.lastIndex = 0;
+        while ((m = URL_RE.exec(text)) !== null) {
+          if (m.index > lastIdx) frag.appendChild(document.createTextNode(text.slice(lastIdx, m.index)));
+          const a = document.createElement('a');
+          a.href = m[0]; a.target = '_blank'; a.rel = 'noopener noreferrer';
+          a.textContent = m[0]; a.className = 'report-link';
+          frag.appendChild(a);
+          lastIdx = m.index + m[0].length;
+        }
+        if (lastIdx < text.length) frag.appendChild(document.createTextNode(text.slice(lastIdx)));
+        parent.replaceChild(frag, textNode);
+      });
+    }
+  
+    let typewriterToken = 0;
+    function typewriteInto(parent, rawText, onProgress, onComplete) {
+      const myToken = ++typewriterToken;
+      const lines = (rawText || '').split('\n');
+      const targets = [];
+      lines.forEach(line => {
+        const parsed = parseReportLine(line);
+        if (parsed.type === 'spacer') {
+          const sp = document.createElement('div'); sp.style.height = '.35rem'; parent.appendChild(sp); return;
+        }
+        const el = document.createElement('div');
+        if (parsed.type === 'heading') el.className = 'report-heading';
+        else if (parsed.type === 'bullet') el.className = 'report-bullet';
+        el.textContent = '';
+        targets.push({ el, fullText: parsed.text });
+        parent.appendChild(el);
+      });
+  
+      const totalChars = targets.reduce((s, t) => s + t.fullText.length, 0);
+      if (totalChars === 0) { linkifySubtree(parent); onComplete && onComplete(); return; }
+  
+      const durationMs = Math.min(3500, Math.max(1500, totalChars * 1.1));
+      const startTime = performance.now();
+      let lastScroll = 0;
+      const cursor = document.createElement('span');
+      cursor.className = 'typing-cursor';
+      const cursorAnchor = targets[targets.length - 1]?.el;
+      if (cursorAnchor) cursorAnchor.appendChild(cursor);
+  
+      function frame() {
+        if (typewriterToken !== myToken) { if (cursor.parentNode) cursor.remove(); return; }
+        const progress = Math.min(1, (performance.now() - startTime) / durationMs);
+        let remainingChars = Math.floor(totalChars * progress);
+        for (const t of targets) {
+          let newText;
+          if (remainingChars <= 0) newText = '';
+          else if (remainingChars >= t.fullText.length) { newText = t.fullText; remainingChars -= t.fullText.length; }
+          else { newText = t.fullText.slice(0, remainingChars); remainingChars = 0; }
+          if (t.el.textContent !== newText) t.el.textContent = newText;
+        }
+        const target = targets.find(t => t.el.textContent.length < t.fullText.length);
+        if (target && cursor.parentNode !== target.el) target.el.appendChild(cursor);
+        else if (!target && cursor.parentNode !== cursorAnchor) cursorAnchor?.appendChild(cursor);
+        if (Date.now() - lastScroll > 120) { onProgress && onProgress(); lastScroll = Date.now(); }
+        if (progress < 1) requestAnimationFrame(frame);
+        else {
+          if (cursor.parentNode) cursor.remove();
           linkifySubtree(parent);
+          onProgress && onProgress();
           onComplete && onComplete();
-          return;
         }
-
-        const durationMs = Math.min(3500, Math.max(1500, totalChars * 1.1));
-        const startTime = performance.now();
-        let lastScroll = 0;
-
-        const cursor = document.createElement('span');
-        cursor.className = 'typing-cursor';
-        const cursorAnchor = targets[targets.length - 1]?.el;
-        if (cursorAnchor) cursorAnchor.appendChild(cursor);
-
-        function frame() {
-          if (typewriterToken !== myToken) {
-            if (cursor.parentNode) cursor.remove();
-            return;
-          }
-          const elapsed = performance.now() - startTime;
-          const progress = Math.min(1, elapsed / durationMs);
-          let remainingChars = Math.floor(totalChars * progress);
-
-          for (const t of targets) {
-            let newText;
-            if (remainingChars <= 0) newText = '';
-            else if (remainingChars >= t.fullText.length) { newText = t.fullText; remainingChars -= t.fullText.length; }
-            else { newText = t.fullText.slice(0, remainingChars); remainingChars = 0; }
-            if (t.el.textContent !== newText) t.el.textContent = newText;
-          }
-
-          const target = targets.find(t => t.el.textContent.length < t.fullText.length);
-          if (target && cursor.parentNode !== target.el) target.el.appendChild(cursor);
-          else if (!target && cursor.parentNode !== cursorAnchor) cursorAnchor?.appendChild(cursor);
-
-          if (Date.now() - lastScroll > 120) {
-            onProgress && onProgress();
-            lastScroll = Date.now();
-          }
-
-          if (progress < 1) requestAnimationFrame(frame);
-          else {
-            if (cursor.parentNode) cursor.remove();
-            linkifySubtree(parent);
-            onProgress && onProgress();
-            onComplete && onComplete();
-          }
+      }
+      requestAnimationFrame(frame);
+    }
+  
+    function renderReportStatic(parent, text) {
+      (text || '').split('\n').forEach(line => {
+        const parsed = parseReportLine(line);
+        if (parsed.type === 'spacer') {
+          const sp = document.createElement('div'); sp.style.height = '.35rem'; parent.appendChild(sp); return;
         }
-        requestAnimationFrame(frame);
-      }
-
-      /* -------- Static report render -------- */
-      function renderReportStatic(parent, text) {
-        const lines = (text || '').split('\n');
-        lines.forEach(line => {
-          const parsed = parseReportLine(line);
-          if (parsed.type === 'spacer') {
-            const spacer = document.createElement('div');
-            spacer.style.height = '.35rem';
-            parent.appendChild(spacer);
-            return;
-          }
-          const el = document.createElement('div');
-          if (parsed.type === 'heading') el.className = 'report-heading';
-          else if (parsed.type === 'bullet') el.className = 'report-bullet';
-          el.textContent = parsed.text;
-          parent.appendChild(el);
-        });
-        linkifySubtree(parent);
-      }
-
-      /* -------- Sources (clickable URLs) -------- */
-      function buildSources(sources) {
-        const srcs = document.createElement('div');
-        srcs.className = 'srcs';
-        sources.forEach(s => {
-          let url = null;
-          let label = null;
-          if (typeof s === 'string') {
-            if (/^https?:\/\//i.test(s)) {
-              url = s;
-              try { label = new URL(s).hostname.replace(/^www\./, ''); } catch { label = s; }
-            } else {
-              label = s;
-            }
-          } else if (s && typeof s === 'object') {
-            url = s.url || s.link || null;
-            label = s.title || s.name || url || 'Source';
-          } else {
-            label = String(s);
-          }
-          if (url) {
-            const a = document.createElement('a');
-            a.href = url;
-            a.target = '_blank';
-            a.rel = 'noopener noreferrer';
-            a.textContent = label;
-            a.title = url;
-            srcs.appendChild(a);
-          } else {
-            const tag = document.createElement('span');
-            tag.textContent = label;
-            srcs.appendChild(tag);
-          }
-        });
-        return srcs;
-      }
-
-      /* -------- Assistant bubbles -------- */
-      function addAssistantBubbleStatic(text, sources) {
-        const msg = document.createElement('div');
-        msg.className = 'msg assistant';
-        const av = document.createElement('img');
-        av.className = 'avatar scout-logo-img';
-        av.src = 'scout-logo.png';
-        av.alt = 'Scout';
-        msg.appendChild(av);
-        const wrap = document.createElement('div');
-        wrap.className = 'bubble-wrap';
-        const bubble = document.createElement('div');
-        bubble.className = 'bubble';
-        renderReportStatic(bubble, text || 'No report generated.');
+        const el = document.createElement('div');
+        if (parsed.type === 'heading') el.className = 'report-heading';
+        else if (parsed.type === 'bullet') el.className = 'report-bullet';
+        el.textContent = parsed.text;
+        parent.appendChild(el);
+      });
+      linkifySubtree(parent);
+    }
+  
+    function buildSources(sources) {
+      const srcs = document.createElement('div');
+      srcs.className = 'srcs';
+      sources.forEach(s => {
+        let url = null, label = null;
+        if (typeof s === 'string') {
+          if (/^https?:\/\//i.test(s)) {
+            url = s;
+            try { label = new URL(s).hostname.replace(/^www\./, ''); } catch { label = s; }
+          } else label = s;
+        } else if (s && typeof s === 'object') {
+          url = s.url || s.link || null;
+          label = s.title || s.name || url || 'Source';
+        } else label = String(s);
+        if (url) {
+          const a = document.createElement('a');
+          a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+          a.textContent = label; a.title = url;
+          srcs.appendChild(a);
+        } else {
+          const tag = document.createElement('span'); tag.textContent = label;
+          srcs.appendChild(tag);
+        }
+      });
+      return srcs;
+    }
+  
+    function addAssistantBubbleStatic(text, sources) {
+      const msg = document.createElement('div');
+      msg.className = 'msg assistant';
+      msg.appendChild(makeAvatar());
+      const wrap = document.createElement('div'); wrap.className = 'bubble-wrap';
+      const bubble = document.createElement('div'); bubble.className = 'bubble';
+      renderReportStatic(bubble, text || 'No report generated.');
+      if (sources && sources.length) bubble.appendChild(buildSources(sources));
+      wrap.appendChild(bubble);
+      const actions = document.createElement('div'); actions.className = 'msg-actions';
+      const copyBtn = document.createElement('button');
+      copyBtn.innerHTML = COPY_SVG; copyBtn.title = 'Copy';
+      copyBtn.addEventListener('click', () => navigator.clipboard.writeText(text || '').catch(() => {}));
+      actions.appendChild(copyBtn);
+      wrap.appendChild(actions);
+      msg.appendChild(wrap);
+      chatBody.appendChild(msg);
+      scrollToBottom();
+      return msg;
+    }
+  
+    function addAssistantBubble(text, sources, isError) {
+      const msg = document.createElement('div');
+      msg.className = 'msg assistant';
+      msg.appendChild(makeAvatar());
+      const wrap = document.createElement('div'); wrap.className = 'bubble-wrap';
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble' + (isError ? ' error-bubble' : '');
+      wrap.appendChild(bubble);
+      msg.appendChild(wrap);
+      chatBody.appendChild(msg);
+      scrollToBottom();
+  
+      if (isError) { bubble.textContent = text; scrollToBottom(); return msg; }
+  
+      typewriteInto(bubble, text || 'No report generated.', scrollToBottom, () => {
         if (sources && sources.length) bubble.appendChild(buildSources(sources));
-        wrap.appendChild(bubble);
-
-        const actions = document.createElement('div');
-        actions.className = 'msg-actions';
+        const actions = document.createElement('div'); actions.className = 'msg-actions';
         const copyBtn = document.createElement('button');
-        copyBtn.innerHTML = COPY_SVG;
-        copyBtn.title = 'Copy';
+        copyBtn.innerHTML = COPY_SVG; copyBtn.title = 'Copy';
         copyBtn.addEventListener('click', () => navigator.clipboard.writeText(text || '').catch(() => {}));
         actions.appendChild(copyBtn);
         wrap.appendChild(actions);
-
-        msg.appendChild(wrap);
-        chatBody.appendChild(msg);
         scrollToBottom();
-        return msg;
+      });
+      return msg;
+    }
+  
+    /* ---- status bubble ---- */
+    let statusEl = null;
+    function showStatus(text) {
+      if (!statusEl) {
+        const msg = document.createElement('div');
+        msg.className = 'msg assistant'; msg.id = 'statusMsg';
+        msg.appendChild(makeAvatar());
+        const wrap = document.createElement('div'); wrap.className = 'bubble-wrap';
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble status-bubble';
+        bubble.innerHTML = '<span class="status-dot"></span><span class="status-text"></span>';
+        wrap.appendChild(bubble); msg.appendChild(wrap);
+        chatBody.appendChild(msg);
+        statusEl = bubble.querySelector('.status-text');
       }
-
-      function addAssistantBubble(text, sources, isError) {
+      statusEl.textContent = text;
+      scrollToBottom();
+    }
+    function hideStatus() {
+      const el = $('statusMsg'); if (el) el.remove();
+      statusEl = null;
+    }
+  
+    /* ---- retry bubble (red, dismissible) ---- */
+    function showRetryBubble(text) {
+      if (!retryBubbleEl) {
         const msg = document.createElement('div');
         msg.className = 'msg assistant';
-        const av = document.createElement('img');
-        av.className = 'avatar scout-logo-img';
-        av.src = 'scout-logo.png';
-        av.alt = 'Scout';
-        msg.appendChild(av);
-        const wrap = document.createElement('div');
-        wrap.className = 'bubble-wrap';
+        msg.appendChild(makeAvatar());
+        const wrap = document.createElement('div'); wrap.className = 'bubble-wrap';
         const bubble = document.createElement('div');
-        bubble.className = 'bubble' + (isError ? ' error-bubble' : '');
-        wrap.appendChild(bubble);
-        msg.appendChild(wrap);
+        bubble.className = 'bubble error-bubble';
+        wrap.appendChild(bubble); msg.appendChild(wrap);
         chatBody.appendChild(msg);
-        scrollToBottom();
-
-        if (isError) {
-          bubble.textContent = text;
-          scrollToBottom();
-          return msg;
-        }
-
-        typewriteInto(
-          bubble,
-          text || 'No report generated.',
-          scrollToBottom,
-          () => {
-            if (sources && sources.length) bubble.appendChild(buildSources(sources));
-            const actions = document.createElement('div');
-            actions.className = 'msg-actions';
-            const copyBtn = document.createElement('button');
-            copyBtn.innerHTML = COPY_SVG;
-            copyBtn.title = 'Copy';
-            copyBtn.addEventListener('click', () => navigator.clipboard.writeText(text || '').catch(() => {}));
-            actions.appendChild(copyBtn);
-            wrap.appendChild(actions);
-            scrollToBottom();
-          }
-        );
-        return msg;
+        retryBubbleEl = bubble;
       }
-
-      /* -------- Status bubble -------- */
-      let statusEl = null;
-      function showStatus(text) {
-        if (!statusEl) {
-          const msg = document.createElement('div');
-          msg.className = 'msg assistant';
-          msg.id = 'statusMsg';
-          const av = document.createElement('img');
-          av.className = 'avatar scout-logo-img';
-          av.src = 'scout-logo.png';
-          av.alt = 'Scout';
-          msg.appendChild(av);
-          const wrap = document.createElement('div');
-          wrap.className = 'bubble-wrap';
-          const bubble = document.createElement('div');
-          bubble.className = 'bubble status-bubble';
-          bubble.innerHTML = '<span class="status-dot"></span><span class="status-text"></span>';
-          wrap.appendChild(bubble);
-          msg.appendChild(wrap);
-          chatBody.appendChild(msg);
-          statusEl = bubble.querySelector('.status-text');
-        }
-        statusEl.textContent = text;
-        scrollToBottom();
-      }
-      function hideStatus() {
-        const el = document.getElementById('statusMsg');
+      retryBubbleEl.textContent = text;
+      scrollToBottom();
+    }
+    function clearRetryBubble() {
+      if (retryBubbleEl) {
+        const el = retryBubbleEl.closest('.msg');
         if (el) el.remove();
-        statusEl = null;
+        retryBubbleEl = null;
       }
-
-      /* ============ COOLDOWN ============ */
-      function setCooldownPill(msLeft) {
-        if (!cooldownPill) return;
-        if (msLeft > 0) {
-          cooldownPill.textContent = Math.ceil(msLeft / 1000) + 's';
-          cooldownPill.classList.add('show');
-        } else {
-          cooldownPill.classList.remove('show');
-          cooldownPill.textContent = '';
-        }
+    }
+  
+    /* ============================================================
+       COOLDOWN
+       ============================================================ */
+    function setCooldownPill(msLeft) {
+      if (!cooldownPill) return;
+      if (msLeft > 0) {
+        cooldownPill.textContent = Math.ceil(msLeft / 1000) + 's';
+        cooldownPill.classList.add('show');
+      } else {
+        cooldownPill.classList.remove('show');
+        cooldownPill.textContent = '';
       }
-
-      function setGoBtnsDisabled(on) {
-        const runBtn = document.getElementById('runBtn');
-        [chatSendBtn, runBtn].forEach(btn => {
-          if (!btn) return;
-          if (on) { btn.disabled = true; }
-          else if (Date.now() < cooldownEndsAt) { btn.disabled = true; btn.classList.add('cooldown'); }
-          else { btn.disabled = false; btn.classList.remove('cooldown'); }
-        });
-      }
-
-      function startCooldown() {
-        cooldownEndsAt = Date.now() + COOLDOWN_SECONDS * 1000;
-        const runBtn = document.getElementById('runBtn');
-
-        [chatSendBtn, runBtn].forEach(btn => {
-          if (!btn) return;
-          btn.disabled = true;
-          btn.classList.add('cooldown');
-        });
-
-        setCooldownPill(COOLDOWN_SECONDS * 1000);
-
-        if (cooldownTimerId) clearInterval(cooldownTimerId);
-        cooldownTimerId = setInterval(() => {
-          const left = cooldownEndsAt - Date.now();
-          if (left <= 0) {
-            clearInterval(cooldownTimerId);
-            cooldownTimerId = null;
-            cooldownEndsAt = 0;
-            setCooldownPill(0);
-            [chatSendBtn, runBtn].forEach(btn => {
-              if (!btn) return;
-              if (!busy) {
-                btn.disabled = false;
-                btn.classList.remove('cooldown');
-              }
-            });
-          } else {
-            setCooldownPill(left);
-          }
-        }, 200);
-      }
-
-      /* ============ BACKEND ============ */
-      async function getAccessToken() {
-        if (!sb) return null;
-        const { data: { session } } = await sb.auth.getSession();
-        return session ? session.access_token : null;
-      }
-
-      async function syncUsageFromServer() {
-        const token = await getAccessToken();
-        if (!token) return;
-        try {
-          const res = await fetch('/api/usage', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (typeof data.used === 'number') setUsageFromServer(data.used);
-          }
-        } catch (e) {}
-      }
-
-      function requireSignin() {
-        if (!currentUser || !currentSession) { showSigninModal(); return true; }
-        return false;
-      }
-
-      async function streamBackend(query, onStatus, onReport, onError) {
-        if (requireSignin()) return;
-        if (remaining() <= 0) { showLimitModal(); return; }
-
-        const token = await getAccessToken();
-        if (!token) { clearSession(); return; }
-
-        const res = await fetch(API, {
+    }
+  
+    function setGoBtnsDisabled(on) {
+      [chatSendBtn, runBtn].forEach(btn => {
+        if (!btn) return;
+        if (on) btn.disabled = true;
+        else if (Date.now() < cooldownEndsAt) { btn.disabled = true; btn.classList.add('cooldown'); }
+        else { btn.disabled = false; btn.classList.remove('cooldown'); }
+      });
+    }
+  
+    function startCooldown() {
+      cooldownEndsAt = Date.now() + COOLDOWN_SECONDS * 1000;
+      [chatSendBtn, runBtn].forEach(btn => { if (btn) { btn.disabled = true; btn.classList.add('cooldown'); } });
+      setCooldownPill(COOLDOWN_SECONDS * 1000);
+      if (cooldownTimerId) clearInterval(cooldownTimerId);
+      cooldownTimerId = setInterval(() => {
+        const left = cooldownEndsAt - Date.now();
+        if (left <= 0) {
+          clearInterval(cooldownTimerId); cooldownTimerId = null; cooldownEndsAt = 0;
+          setCooldownPill(0);
+          [chatSendBtn, runBtn].forEach(btn => { if (btn && !busy) { btn.disabled = false; btn.classList.remove('cooldown'); } });
+        } else setCooldownPill(left);
+      }, 200);
+    }
+  
+    /* ============================================================
+       BACKEND — single attempt
+       ============================================================ */
+    async function getAccessToken() {
+      if (!sb) return null;
+      const { data: { session } } = await sb.auth.getSession();
+      return session ? session.access_token : null;
+    }
+  
+    function requireSignin() {
+      if (!currentUser || !currentSession) { showSigninModal(); return true; }
+      return false;
+    }
+  
+    async function streamBackendOnce(query, onStatus, token) {
+      let res;
+      try {
+        res = await fetch(API, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ query }),
         });
-
-        if (res.status === 401) {
-          try { await sb.auth.signOut(); } catch (e) {}
-          clearSession();
-          onError('unauthorized');
-          return;
-        }
-        if (res.status === 429) {
-          const data = await res.json().catch(() => ({}));
-          if (typeof data.used === 'number') setUsageFromServer(data.used);
-          onError('rateLimited');
-          return;
-        }
-        if (res.status === 400) {
-          const data = await res.json().catch(() => ({}));
-          onError(data.error || 'Bad request');
-          return;
-        }
-        if (!res.ok || !res.body) { onError(`HTTP ${res.status}`); return; }
-
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-
+      } catch (e) {
+        return { ok: false, error: 'network' };
+      }
+  
+      if (res.status === 401) return { ok: false, error: 'unauthorized' };
+      if (res.status === 429) {
+        const d = await res.json().catch(() => ({}));
+        return { ok: false, error: 'rateLimited', used: d.used };
+      }
+      if (res.status === 400) {
+        const d = await res.json().catch(() => ({}));
+        return { ok: false, error: d.error || 'Bad request' };
+      }
+      if (!res.ok || !res.body) return { ok: false, error: `HTTP ${res.status}` };
+  
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let report = null, sources = [], used = null, errMsg = null;
+  
+      try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
           buffer += decoder.decode(value, { stream: true });
-          const events = buffer.split('\n\n');
-          buffer = events.pop() || '';
-          for (const raw of events) {
+          const parts = buffer.split('\n\n');
+          buffer = parts.pop() || '';
+          for (const raw of parts) {
             const line = raw.trim();
             if (!line.startsWith('data:')) continue;
             const payload = line.slice(5).trim();
             if (!payload) continue;
-            let evt;
-            try { evt = JSON.parse(payload); } catch (e) { continue; }
+            let evt; try { evt = JSON.parse(payload); } catch { continue; }
             if (evt.type === 'status') onStatus(evt.message);
-            else if (evt.type === 'report') onReport(evt);
-            else if (evt.type === 'error') onError(evt.message);
+            else if (evt.type === 'report') { report = evt.report; sources = evt.sources || []; used = evt.used; }
+            else if (evt.type === 'error') errMsg = evt.message;
           }
         }
+      } catch (e) {
+        return { ok: false, error: 'stream' };
       }
-
-      /* ───── Run from home ───── */
-      async function runScout(q) {
-        if (requireSignin()) return;
-        if (busy || !q.trim()) { queryInput.focus(); return; }
-        if (Date.now() < cooldownEndsAt) return;
-        if (remaining() <= 0) { showLimitModal(); return; }
-
-        busy = true;
-        const runBtn = document.getElementById('runBtn');
-        runBtn.disabled = true;
-        runBtn.classList.add('loading');
-
-        chatBody.innerHTML = '';
-
+  
+      if (errMsg) return { ok: false, error: errMsg };
+      if (!report || !report.trim()) return { ok: false, error: 'empty' };
+      return { ok: true, report, sources, used };
+    }
+  
+    /* ============================================================
+       BACKEND — with automatic retry
+       ============================================================ */
+    async function streamBackendWithRetry(query, onStatus) {
+      if (requireSignin()) return null;
+      if (remaining() <= 0) { showLimitModal(); return null; }
+      const token = await getAccessToken();
+      if (!token) { clearSession(); return null; }
+  
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        const r = await streamBackendOnce(query, onStatus, token);
+  
+        if (r.ok) { clearRetryBubble(); return r; }
+  
+        if (r.error === 'unauthorized') {
+          try { await sb.auth.signOut(); } catch {}
+          clearSession();
+          return null;
+        }
+        if (r.error === 'rateLimited') {
+          if (typeof r.used === 'number') setUsageFromServer(r.used);
+          showLimitModal();
+          clearRetryBubble();
+          return null;
+        }
+  
+        if (attempt < MAX_RETRIES) {
+          showRetryBubble(`An Error Encountered... Trying Again! (Attempt ${attempt + 1} of ${MAX_RETRIES})`);
+          await sleep(RETRY_DELAY_MS);
+        } else {
+          showRetryBubble(`An Error Encountered. We couldn't generate the report after ${MAX_RETRIES} attempts. Please try again in a moment.`);
+          return null;
+        }
+      }
+      return null;
+    }
+  
+    /* ============================================================
+       RUN / SEND
+       ============================================================ */
+    async function runScout(q) {
+      if (requireSignin()) return;
+      if (busy || !q.trim()) { queryInput.focus(); return; }
+      if (Date.now() < cooldownEndsAt) return;
+      if (remaining() <= 0) { showLimitModal(); return; }
+  
+      busy = true;
+      runBtn.disabled = true; runBtn.classList.add('loading');
+      chatBody.innerHTML = '';
+  
+      try {
         const sessionId = await createChatSession(q.trim());
-
         addUserBubble(q.trim());
         goToChat();
-        if (sessionId) saveMessage(sessionId, 'user', q.trim());
-
-        await streamBackend(
-          q.trim(),
-          (message) => showStatus(message),
-          (evt) => {
-            hideStatus();
-            const report = evt.report || 'No report generated.';
-            const sources = evt.sources || [];
-            addAssistantBubble(report, sources, false);
-            if (typeof evt.used === 'number') setUsageFromServer(evt.used);
-            if (sessionId) saveMessage(sessionId, 'assistant', report, sources);
-          },
-          (err) => {
-            hideStatus();
-            if (err === 'rateLimited') {
-              addAssistantBubble("You've reached the daily limit of 3 reports for this account. Please come back tomorrow.", [], true);
-              showLimitModal();
-            } else if (err !== 'unauthorized') {
-              addAssistantBubble(`Something went wrong: ${err}`, [], true);
-            }
-          }
-        );
-
+        if (sessionId) await saveMessage(sessionId, 'user', q.trim());
+  
+        const result = await streamBackendWithRetry(q.trim(), showStatus);
+        hideStatus();
+  
+        if (result) {
+          addAssistantBubble(result.report, result.sources, false);
+          setUsageFromServer(result.used);
+          if (sessionId) await saveMessage(sessionId, 'assistant', result.report, result.sources);
+        }
+      } finally {
         busy = false;
         runBtn.classList.remove('loading');
         runBtn.disabled = false;
         startCooldown();
       }
-
-      /* ───── Send from chat ───── */
-      async function sendChatMessage() {
-        if (requireSignin()) return;
-        const q = chatInput.value.trim();
-        if (!q || busy) return;
-        if (Date.now() < cooldownEndsAt) return;
-        if (remaining() <= 0) { showLimitModal(); return; }
-
-        chatInput.value = '';
-        chatInput.style.height = 'auto';
-
-        let sessionId = currentChatSessionId;
-        if (!sessionId) {
-          sessionId = await createChatSession(q);
-        }
-
+    }
+  
+    async function sendChatMessage() {
+      if (requireSignin()) return;
+      const q = chatInput.value.trim();
+      if (!q || busy) return;
+      if (Date.now() < cooldownEndsAt) return;
+      if (remaining() <= 0) { showLimitModal(); return; }
+  
+      chatInput.value = '';
+      chatInput.style.height = 'auto';
+      busy = true;
+      chatSendBtn.disabled = true; chatSendBtn.classList.add('loading');
+  
+      try {
+        let sessionId = currentChatSessionId || await createChatSession(q);
         addUserBubble(q);
-        if (sessionId) saveMessage(sessionId, 'user', q);
-
-        busy = true;
-        chatSendBtn.disabled = true;
-        chatSendBtn.classList.add('loading');
-
-        await streamBackend(
-          q,
-          (message) => showStatus(message),
-          (evt) => {
-            hideStatus();
-            const report = evt.report || 'No response.';
-            const sources = evt.sources || [];
-            addAssistantBubble(report, sources, false);
-            if (typeof evt.used === 'number') setUsageFromServer(evt.used);
-            if (sessionId) saveMessage(sessionId, 'assistant', report, sources);
-          },
-          (err) => {
-            hideStatus();
-            if (err === 'rateLimited') {
-              addAssistantBubble("Daily limit reached for this account. Please come back tomorrow.", [], true);
-              showLimitModal();
-            } else if (err !== 'unauthorized') {
-              addAssistantBubble(`Something went wrong: ${err}`, [], true);
-            }
-          }
-        );
-
+        if (sessionId) await saveMessage(sessionId, 'user', q);
+  
+        const result = await streamBackendWithRetry(q, showStatus);
+        hideStatus();
+  
+        if (result) {
+          addAssistantBubble(result.report, result.sources, false);
+          setUsageFromServer(result.used);
+          if (sessionId) await saveMessage(sessionId, 'assistant', result.report, result.sources);
+        }
+      } finally {
         busy = false;
         chatSendBtn.classList.remove('loading');
         chatSendBtn.disabled = false;
         startCooldown();
       }
-
-      chatSendBtn.addEventListener('click', sendChatMessage);
-      chatInput.addEventListener('keydown', e => {
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
-      });
-
-      /* ============ HOME SEARCH ============ */
-      const queryInput = document.getElementById('queryInput');
-      document.getElementById('runBtn').addEventListener('click', () => runScout(queryInput.value));
-      queryInput.addEventListener('keydown', e => {
-        if (e.key === 'Enter') { e.preventDefault(); runScout(queryInput.value); }
-      });
-
-      /* ============ INIT ============ */
-      updateLimitBadge();
-      loadConfig();
-      queryInput.focus();
-    })();
+    }
+  
+    chatSendBtn.addEventListener('click', sendChatMessage);
+    chatInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); } });
+  
+    runBtn.addEventListener('click', () => runScout(queryInput.value));
+    queryInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); runScout(queryInput.value); } });
+  
+    /* ============================================================
+       INIT
+       ============================================================ */
+    updateUsageBlock();
+    loadConfig();
+    queryInput.focus();
+  })();
   </script>
-</body>
+  </body>
 </html>
