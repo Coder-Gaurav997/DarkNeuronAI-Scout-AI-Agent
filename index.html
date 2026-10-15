@@ -4,27 +4,28 @@
 <meta charset="UTF-8" />
 <meta name="google-site-verification" content="R7tBuVDMPNIU55SC52vMCClTtcTlHogvQzZte6NZJXE" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>Scout AI — Autonomous Research Agent</title>
-<meta name="description" content="Scout AI turns any question into a citation-backed research brief in seconds." />
-<meta name="application-name" content="Scout AI" />
+<title>Scout — Autonomous Research Agent</title>
+<meta name="description" content="Scout turns any question into a citation-backed research brief in seconds." />
+<meta name="application-name" content="Scout" />
 <meta name="theme-color" content="#0a0a0a" />
 <meta name="color-scheme" content="light dark" />
 
-<!-- Circular favicon via inline SVG clip -->
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3CclipPath id='c'%3E%3Ccircle cx='50' cy='50' r='50'/%3E%3C/clipPath%3E%3C/defs%3E%3Cimage href='/scout-logo.png' width='100' height='100' clip-path='url(%23c)'/%3E%3C/svg%3E" />
-<link rel="apple-touch-icon" sizes="180x180" href="/scout-logo.png" />
+<!-- ==== Favicon: direct PNG links (works reliably in browser tabs) ==== -->
+<link rel="icon" type="image/png" href="scout-logo.png" />
+<link rel="shortcut icon" type="image/png" href="scout-logo.png" />
+<link rel="apple-touch-icon" href="scout-logo.png" />
 <link rel="manifest" href="/site.webmanifest" />
 
 <meta property="og:type" content="website" />
-<meta property="og:site_name" content="Scout AI" />
-<meta property="og:title" content="Scout AI — Autonomous Research Agent" />
+<meta property="og:site_name" content="Scout" />
+<meta property="og:title" content="Scout — Autonomous Research Agent" />
 <meta property="og:description" content="Turn any question into a citation-backed research brief in seconds." />
 <meta property="og:url" content="https://darkneuronai-scout.onrender.com/" />
 <meta property="og:image" content="https://darkneuronai-scout.onrender.com/scout-logo.png" />
 <meta property="og:image:width" content="512" />
 <meta property="og:image:height" content="512" />
 <meta name="twitter:card" content="summary" />
-<meta name="twitter:title" content="Scout AI — Autonomous Research Agent" />
+<meta name="twitter:title" content="Scout — Autonomous Research Agent" />
 <meta name="twitter:description" content="Turn any question into a citation-backed research brief in seconds." />
 <meta name="twitter:image" content="https://darkneuronai-scout.onrender.com/scout-logo.png" />
 <link rel="canonical" href="https://darkneuronai-scout.onrender.com/" />
@@ -33,9 +34,9 @@
 {
   "@context":"https://schema.org",
   "@graph":[
-    {"@type":"WebSite","@id":"https://darkneuronai-scout.onrender.com/#website","url":"https://darkneuronai-scout.onrender.com/","name":"Scout AI","alternateName":["Scout","DarkNeuronAI Scout"],"description":"Autonomous research and report generation AI agent.","inLanguage":"en","publisher":{"@id":"https://darkneuronai-scout.onrender.com/#org"}},
+    {"@type":"WebSite","@id":"https://darkneuronai-scout.onrender.com/#website","url":"https://darkneuronai-scout.onrender.com/","name":"Scout","alternateName":["Scout","DarkNeuronAI Scout"],"description":"Autonomous research and report generation AI agent.","inLanguage":"en","publisher":{"@id":"https://darkneuronai-scout.onrender.com/#org"}},
     {"@type":"Organization","@id":"https://darkneuronai-scout.onrender.com/#org","name":"DarkNeuronAI","url":"https://darkneuronai-scout.onrender.com/","logo":{"@type":"ImageObject","url":"https://darkneuronai-scout.onrender.com/scout-logo.png","width":512,"height":512},"founder":{"@type":"Person","name":"Gaurav Pandey","jobTitle":"Founder & Chief AI Officer"}},
-    {"@type":"SoftwareApplication","@id":"https://darkneuronai-scout.onrender.com/#app","name":"Scout AI","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Autonomous research agent that generates citation-backed reports from a single query.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"publisher":{"@id":"https://darkneuronai-scout.onrender.com/#org"}}
+    {"@type":"SoftwareApplication","@id":"https://darkneuronai-scout.onrender.com/#app","name":"Scout","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Autonomous research agent that generates citation-backed reports from a single query.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"publisher":{"@id":"https://darkneuronai-scout.onrender.com/#org"}}
   ]
 }
 </script>
@@ -87,29 +88,13 @@ body{
 
 /* ==== Animated aurora background ==== */
 .bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
-.bg::before,.bg::after{
-  content:'';position:absolute;border-radius:50%;filter:blur(90px);opacity:.55;
-}
-.bg::before{
-  width:70vmax;height:70vmax;top:-25vmax;left:-20vmax;
-  background:radial-gradient(circle,#ff9ad4 0%,transparent 65%);
-  animation:drift1 22s ease-in-out infinite;
-}
-.bg::after{
-  width:65vmax;height:65vmax;bottom:-25vmax;right:-15vmax;
-  background:radial-gradient(circle,#9b8bff 0%,transparent 65%);
-  animation:drift2 26s ease-in-out infinite;
-}
-.bg .blob{
-  position:absolute;border-radius:50%;filter:blur(80px);opacity:.42;
-  width:50vmax;height:50vmax;top:40%;left:35%;
-  background:radial-gradient(circle,#7fc4ff 0%,transparent 65%);
-  animation:drift3 30s ease-in-out infinite;
-}
+.bg::before,.bg::after{content:'';position:absolute;border-radius:50%;filter:blur(90px);opacity:.55}
+.bg::before{width:70vmax;height:70vmax;top:-25vmax;left:-20vmax;background:radial-gradient(circle,#ff9ad4 0%,transparent 65%);animation:drift1 22s ease-in-out infinite}
+.bg::after{width:65vmax;height:65vmax;bottom:-25vmax;right:-15vmax;background:radial-gradient(circle,#9b8bff 0%,transparent 65%);animation:drift2 26s ease-in-out infinite}
+.bg .blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.42;width:50vmax;height:50vmax;top:40%;left:35%;background:radial-gradient(circle,#7fc4ff 0%,transparent 65%);animation:drift3 30s ease-in-out infinite}
 body.dark .bg::before{background:radial-gradient(circle,#7a1a55 0%,transparent 65%);opacity:.35}
 body.dark .bg::after{background:radial-gradient(circle,#3b3a8f 0%,transparent 65%);opacity:.35}
 body.dark .bg .blob{background:radial-gradient(circle,#2a4a8a 0%,transparent 65%);opacity:.28}
-
 @keyframes drift1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(15vmax,10vmax) scale(1.1)}}
 @keyframes drift2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-15vmax,-8vmax) scale(1.15)}}
 @keyframes drift3{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-45%,-55%) scale(1.08)}}
@@ -145,12 +130,19 @@ body.in-chat .pro-btn{display:none}
 .usage{
   height:32px;border-radius:16px;background:var(--chip);border:1.4px solid var(--chip-b);
   display:flex;align-items:center;gap:.35rem;padding:0 .7rem;box-shadow:var(--shadow);
+  transition:all var(--t);
 }
 .usage .dot{width:6px;height:6px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 2px rgba(34,197,94,.18);transition:all var(--t)}
 .usage.warn .dot{background:#f59e0b;box-shadow:0 0 0 2px rgba(245,158,11,.2)}
 .usage.full .dot{background:#ef4444;box-shadow:0 0 0 2px rgba(239,68,68,.2)}
 .usage strong{font:800 .78rem/1 'Inter',sans-serif;font-variant-numeric:tabular-nums}
-.usage span{font:600 .68rem/1 'Inter',sans-serif;color:var(--muted);letter-spacing:.02em}
+.usage .usage-label{font:600 .68rem/1 'Inter',sans-serif;color:var(--muted);letter-spacing:.02em}
+.usage.unlimited .dot{background:var(--grad);background-size:200% 200%;animation:grad 4s ease infinite;box-shadow:0 0 0 2px rgba(160,32,160,.22)}
+.usage.unlimited strong{
+  font-size:1rem;font-weight:900;
+  background:var(--grad);background-size:200% 200%;animation:grad 6s ease infinite;
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}
 
 .icon-btn,.user-chip{
   width:42px;height:42px;border-radius:50%;background:var(--chip);border:1.4px solid var(--chip-b);
@@ -259,14 +251,21 @@ body.dark .glass::before{background:radial-gradient(ellipse 42% 50% at 14% 10%,r
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 
 .heading{
-  font-weight:800;font-size:clamp(1.35rem,7.6vw,3.6rem);line-height:1.1;
-  letter-spacing:-.035em;color:var(--text);margin-bottom:1rem;white-space:nowrap;max-width:100%;
+  font-weight:800;font-size:clamp(1.35rem,7.6vw,3.6rem);line-height:1.15;
+  letter-spacing:-.035em;color:var(--text);margin-bottom:1rem;max-width:100%;
+  display:flex;flex-wrap:wrap;justify-content:center;align-items:baseline;gap:.35em;
   animation:fadeUp .7s .03s cubic-bezier(.22,1,.36,1) both;
 }
+.heading .pre{
+  display:inline-block;font-weight:800;color:var(--text);
+  transition:opacity .32s ease,transform .32s ease;
+}
+.heading .pre.fade{opacity:0;transform:translateY(-10px)}
 .heading .brand{
-  font-weight:900;background:var(--grad);background-size:200% 200%;
+  display:inline-block;font-weight:900;position:relative;
+  background:var(--grad);background-size:200% 200%;
   -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-  animation:grad 8s ease infinite;display:inline-block;position:relative;
+  animation:grad 8s ease infinite;
 }
 .heading .brand::after{
   content:'';position:absolute;left:0;right:0;bottom:-.08em;height:4px;border-radius:4px;
@@ -292,6 +291,7 @@ body.dark .search:focus-within{box-shadow:var(--shadow-lg),0 0 0 4px rgba(255,25
 }
 .search input::placeholder{color:var(--muted);transition:opacity var(--t)}
 .search input:focus::placeholder{opacity:.45}
+.search input:disabled{cursor:not-allowed;opacity:.75}
 
 .go{
   flex-shrink:0;width:44px;height:44px;border-radius:50%;border:none;background:var(--btn);color:var(--btn-fg);
@@ -307,14 +307,17 @@ body.dark .search:focus-within{box-shadow:var(--shadow-lg),0 0 0 4px rgba(255,25
 .go.loading svg{animation:spin 1s linear infinite}
 
 .credit{
-  margin-top:2.4rem;font:500 .7rem/1.6 'Inter',sans-serif;letter-spacing:.14em;
-  text-transform:uppercase;color:var(--muted);
+  margin-top:2.2rem;display:flex;flex-direction:column;gap:.45rem;align-items:center;
   animation:fadeUp .7s .3s cubic-bezier(.22,1,.36,1) both;
 }
-.credit strong{
+.credit p{
+  font:600 .68rem/1.5 'Inter',sans-serif;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--muted);margin:0;
+}
+.credit p strong{
   font-weight:800;background:var(--grad);background-size:200% 200%;
   -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-  animation:grad 8s ease infinite;letter-spacing:.16em;
+  animation:grad 8s ease infinite;letter-spacing:.18em;
 }
 
 /* ==== Chat ==== */
@@ -393,7 +396,6 @@ body.dark .bubble a.link{color:#d98cff;text-decoration-color:rgba(217,140,255,.4
 }
 body.dark .status .dot{background:linear-gradient(135deg,#d98cff,#e08cff);box-shadow:0 0 0 3px rgba(217,140,255,.22)}
 
-/* Message actions */
 .actions{display:flex;gap:.4rem;padding-left:.15rem}
 .actions button{
   width:30px;height:30px;border-radius:50%;background:transparent;
@@ -438,18 +440,9 @@ body.dark .composer:focus-within{box-shadow:var(--shadow-lg),0 0 0 4px rgba(255,
 }
 .composer textarea::-webkit-scrollbar{display:none}
 .composer textarea::placeholder{color:var(--muted)}
+.composer textarea:disabled{cursor:not-allowed;opacity:.7}
 .composer .go{width:40px;height:40px}
 .hint{margin:.6rem auto 0;text-align:center;font-size:.68rem;color:var(--muted);letter-spacing:.02em}
-
-.cooldown{
-  display:none;align-items:center;justify-content:center;height:32px;min-width:54px;
-  padding:0 .7rem;margin-bottom:4px;border-radius:16px;background:var(--hover);
-  border:1px solid var(--border);color:var(--muted);font:800 .72rem/1 'Inter',sans-serif;
-  font-variant-numeric:tabular-nums;letter-spacing:.03em;flex-shrink:0;
-  user-select:none;animation:cPulse 1.6s ease-in-out infinite;
-}
-.cooldown.show{display:inline-flex}
-@keyframes cPulse{0%,100%{opacity:.55}50%{opacity:1}}
 
 /* ==== Modals ==== */
 .overlay{
@@ -537,7 +530,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
 .foot strong{color:var(--sub);font-weight:600}
 
 /* Profile modal */
-.profile-m{max-width:440px}
+.profile-m{max-width:440px;padding:2rem 1.9rem 1.5rem}
 .profile-head{display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border)}
 .profile-av{
   width:64px;height:64px;border-radius:50%;flex-shrink:0;background:var(--grad);
@@ -611,7 +604,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
 .pro-acts .close{background:transparent;color:var(--text);border:1.5px solid var(--border)}
 .pro-acts .close:hover{border-color:var(--text);transform:translateY(-1px)}
 
-/* Generic small modal (limit, info, password, name, download) */
+/* Generic small modal */
 .sm{max-width:460px;text-align:left;min-height:0;padding:2rem 1.9rem 1.8rem;overflow-y:auto;max-height:90vh}
 .sm::before{display:none}
 .sm h3{font-size:1.2rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.5rem;color:var(--text)}
@@ -623,14 +616,28 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
 .sm .cta button:hover{opacity:.85;transform:translateY(-1px)}
 
 .info-m{max-width:560px;padding:2.25rem;min-height:0}
-.info-m h2{font-size:1.35rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.35rem;display:flex;align-items:center;gap:.65rem}
+.info-m h2{font-size:1.35rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.35rem;display:flex;align-items:center;gap:.65rem;justify-content:flex-start}
 .info-m h2 .logo-img{width:36px;height:36px;flex-shrink:0}
 .info-m h2 span{font-weight:900;background:var(--grad);background-size:200% 200%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:grad 8s ease infinite}
-.info-m .sub{font-size:.78rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:1.35rem}
-.info-m p{font-size:.94rem;line-height:1.75;color:var(--sub);margin-bottom:1rem}
+.info-m .sub{font-size:.78rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:1.35rem;text-align:left}
+.info-m p{font-size:.94rem;line-height:1.75;color:var(--sub);margin-bottom:1rem;text-align:left}
 .info-m p strong{color:var(--text);font-weight:700}
-.founder{margin-top:1.35rem;padding-top:1.15rem;border-top:1px solid var(--border);font-size:.82rem;color:var(--muted);line-height:1.65}
-.founder strong{color:var(--text);font-weight:700}
+.founder-card{
+  margin-top:1.35rem;padding:1rem 1.1rem;border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:.85rem;
+  background:linear-gradient(135deg,rgba(160,32,160,.06),rgba(141,36,170,.06));
+  border-radius:14px;border:1px solid var(--border);border-top:1px solid var(--border);
+}
+.founder-avatar{
+  width:44px;height:44px;border-radius:50%;flex-shrink:0;
+  background:var(--grad);background-size:200% 200%;animation:grad 8s ease infinite;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:800;font-size:.95rem;letter-spacing:.02em;
+  box-shadow:0 3px 12px rgba(106,27,154,.28);
+}
+.founder-info{flex:1;min-width:0;text-align:left}
+.founder-info strong{display:block;font-size:.92rem;font-weight:800;color:var(--text);margin-bottom:.15rem}
+.founder-info span{font-size:.76rem;color:var(--muted);line-height:1.4}
 .close-x{
   position:absolute;top:1.1rem;right:1.1rem;width:36px;height:36px;border-radius:50%;
   background:transparent;border:1.5px solid var(--border);color:var(--text);
@@ -663,7 +670,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
 @keyframes pulseDot{0%,100%{opacity:.35;transform:scale(.85)}50%{opacity:1;transform:scale(1.18)}}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 
-/* ==== Responsive ==== */
+/* ==== Responsive — mobile perfect ==== */
 @media (max-width:768px){
   .pro-btn .pro-label{display:none}
   .pro-btn{padding:0 .8rem}
@@ -677,8 +684,9 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
   .tl-btn svg{width:16px;height:16px}
   .pro-btn{padding:0 .6rem}
   .usage{height:30px;border-radius:15px;padding:0 .55rem;gap:.3rem}
-  .usage span{display:none}
+  .usage .usage-label{display:none}
   .usage strong{font-size:.72rem}
+  .usage.unlimited strong{font-size:.9rem}
   .icon-btn,.user-chip{width:38px;height:38px}
   .icon-btn svg{width:17px;height:17px}
   .user-chip{font-size:.9rem}
@@ -686,7 +694,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
   .home{padding:1.25rem 1rem}
   .glass{padding:2rem 1.15rem 1.65rem;border-radius:26px}
   .home-logo{width:76px;height:76px;margin-bottom:1.1rem}
-  .heading{margin-bottom:.85rem}
+  .heading{margin-bottom:.85rem;flex-direction:column;gap:.15em;line-height:1.15}
   .heading .brand::after{height:3px}
   .tagline{letter-spacing:.12em;margin-bottom:2.2rem;font-size:.6rem;padding-left:0}
   .search-wrap{max-width:100%}
@@ -694,10 +702,11 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
   .search input{font-size:.92rem;padding:.55rem 0}
   .go{width:40px;height:40px}
   .go svg{width:16px;height:16px}
-  .credit{margin-top:1.6rem;font-size:.58rem;letter-spacing:.1em}
+  .credit{margin-top:1.6rem;gap:.35rem}
+  .credit p{font-size:.58rem;letter-spacing:.12em}
 
   .chat-col{padding:0 1rem;max-width:100%}
-  .chat-head{padding:3.4rem 0 .7rem;gap:.6rem}
+  .chat-head{padding:3.6rem 0 .7rem;gap:.6rem}
   .back{width:36px;height:36px}
   .back svg{width:16px;height:16px}
   .chat-title{font-size:.95rem;gap:.45rem}
@@ -714,13 +723,13 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
   .composer textarea{font-size:.92rem}
   .composer .go{width:38px;height:38px}
   .hint{font-size:.62rem}
-  .cooldown{height:28px;min-width:46px;font-size:.66rem;padding:0 .55rem;margin-bottom:5px}
 
   .modal{padding:1.75rem 1.4rem 1.5rem;border-radius:22px;min-height:0}
   .view h2{font-size:1.25rem}
   .modal-logo{width:72px;height:72px;margin-bottom:.9rem}
   .profile-av{width:54px;height:54px;font-size:1.35rem}
   .profile-name{font-size:1.05rem}
+  .profile-m{padding:1.6rem 1.3rem 1.3rem}
   .sidebar{width:290px}
   .pro-m{padding:1.3rem 1.2rem 1.1rem;border-radius:18px}
   .pro-m h2{font-size:1.12rem}
@@ -728,24 +737,34 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
   .feat-text strong{font-size:.78rem}
   .feat-text span{font-size:.7rem}
   .edit-ta{min-width:min(240px,72vw);font-size:.92rem}
+  .info-m{padding:1.7rem 1.3rem 1.5rem}
+  .info-m h2{font-size:1.15rem}
+  .info-m p{font-size:.88rem}
+  .founder-card{padding:.85rem .9rem;gap:.7rem}
+  .founder-avatar{width:38px;height:38px;font-size:.85rem}
+  .founder-info strong{font-size:.86rem}
+  .founder-info span{font-size:.7rem}
+  .dl-grid{grid-template-columns:1fr 1fr;gap:.5rem}
+  .dl-opt{padding:.95rem .65rem}
 }
 @media (max-width:400px){
   .tl-btn{height:34px;border-radius:17px;font-size:.7rem;padding:0 .55rem}
   .tl-btn.icon-only{width:34px;padding:0}
   .tl-btn svg{width:15px;height:15px}
+  .pro-btn{display:none}
   .icon-btn,.user-chip{width:34px;height:34px}
   .icon-btn svg{width:16px;height:16px}
   .user-chip{font-size:.85rem}
-  .chat-head{padding-top:3rem}
+  .chat-head{padding-top:3.3rem}
   .heading{margin-bottom:.7rem}
   .tagline{margin-bottom:1.9rem;font-size:.56rem;letter-spacing:.1em}
   .glass{padding:1.6rem .95rem 1.3rem;border-radius:22px}
+  .home-logo{width:66px;height:66px;margin-bottom:.9rem}
+  .credit p{font-size:.54rem;letter-spacing:.1em}
+  .dl-grid{grid-template-columns:1fr}
 }
-
-@media print{
-  body *{visibility:hidden}
-  #printArea,#printArea *{visibility:visible}
-  #printArea{position:absolute;left:0;top:0;width:100%}
+@media (max-width:340px){
+  .usage{display:none}
 }
 </style>
 </head>
@@ -761,7 +780,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
   <div class="usage" id="usageBlock" title="Reports left today">
     <span class="dot"></span>
     <strong id="usageLeft">3</strong>
-    <span>left</span>
+    <span class="usage-label">left</span>
   </div>
   <button class="tl-btn pro-btn" id="proBtn">
     <span>✦</span><span class="pro-label">Upgrade</span>
@@ -807,9 +826,9 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
 <div class="home" id="home">
   <div class="glass">
     <div class="home-logo">
-      <img src="scout-logo.png" alt="Scout AI" class="logo-img" />
+      <img src="scout-logo.png" alt="Scout" class="logo-img" />
     </div>
-    <h1 class="heading">Meet <span class="brand">Scout AI</span></h1>
+    <h1 class="heading"><span class="pre">Meet</span> <span class="brand">Scout</span></h1>
     <p class="tagline">YOUR AUTONOMOUS RESEARCH COMPANION</p>
 
     <div class="search-wrap">
@@ -821,7 +840,10 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
       </div>
     </div>
 
-    <p class="credit">Designed &amp; Developed By <strong>Gaurav Pandey</strong></p>
+    <div class="credit">
+      <p>From the Innovation Labs of <strong>DarkNeuronAI</strong></p>
+      <p>Designed &amp; Developed by <strong>Gaurav Pandey</strong></p>
+    </div>
   </div>
 </div>
 
@@ -845,7 +867,6 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
     <div class="dock">
       <div class="composer">
         <textarea id="chatInput" rows="1" placeholder="Continue the research…" autocomplete="off" spellcheck="false"></textarea>
-        <span class="cooldown" id="cooldown">10s</span>
         <button class="go" id="sendBtn" aria-label="Send">
           <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
         </button>
@@ -861,7 +882,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
     <img src="scout-logo.png" alt="Scout" class="modal-logo logo-img" />
 
     <div class="view" id="vChoose">
-      <h2>Welcome to <span class="grad">Scout AI</span></h2>
+      <h2>Welcome to <span class="grad">Scout</span></h2>
       <p class="sub">Sign in to unlock autonomous research. Every account gets <strong>3 free reports daily</strong>.</p>
       <div class="auth-btns">
         <button class="auth-btn primary" id="toSignup">Create Account</button>
@@ -1024,11 +1045,14 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
     <button class="close-x" id="infoClose" aria-label="Close"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
     <h2><img src="scout-logo.png" alt="Scout" class="logo-img" />About <span>Scout</span></h2>
     <div class="sub">Autonomous Research Intelligence</div>
-    <p><strong>Scout</strong> is an autonomous research and report generation agent built to retrieve, refine, and synthesize information from the open web. It orchestrates a multi-stage pipeline — semantic extraction, relevance filtering, and structured report composition — to deliver accurate, citation-backed intelligence on demand.</p>
-    <p>Powered by <strong>specialized language models</strong> tuned for research workflows, Scout works with minimal supervision, transforming a single query into a comprehensive, well-sourced brief in seconds.</p>
-    <div class="founder">
-      Built under the direct supervision of <strong>Gaurav Pandey</strong><br>
-      Founder &amp; Chief AI Officer — DarkNeuronAI
+    <p><strong>Scout</strong> is an autonomous research agent that retrieves, refines, and synthesizes information from across the open web. It runs a multi-stage pipeline — semantic extraction, relevance filtering, and structured report composition — to deliver accurate, citation-backed briefs on demand.</p>
+    <p>Powered by <strong>specialized language models</strong> tuned for research workflows, Scout works with minimal supervision, turning a single query into a comprehensive brief in seconds.</p>
+    <div class="founder-card">
+      <div class="founder-avatar">GP</div>
+      <div class="founder-info">
+        <strong>Gaurav Pandey</strong>
+        <span>Founder &amp; Chief AI Officer — DarkNeuronAI</span>
+      </div>
     </div>
   </div>
 </div>
@@ -1054,7 +1078,11 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
 <script>
 (() => {
   'use strict';
-  const DAILY_LIMIT = 3, API = '/api/research', CD_SEC = 10, MAX_RETRIES = 3, RETRY_MS = 1500;
+  const DAILY_LIMIT = 3;
+  const UNLIMITED_EMAIL = 'golupandey95207@gmail.com';
+  const API = '/api/research', CD_SEC = 10, MAX_RETRIES = 3, RETRY_MS = 1500;
+  const PLACEHOLDER_HOME = 'Ask Scout anything…';
+  const PLACEHOLDER_CHAT = 'Continue the research…';
   let SUPABASE_URL = '', SUPABASE_ANON_KEY = '', sb = null;
   let currentUser = null, currentSession = null, currentChatId = null, chatCache = [];
   let busy = false, cdTimer = null, cdEnds = 0, retryEl = null, sideOpen = false;
@@ -1063,12 +1091,33 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
 
   const authModal = $('authModal'), userChip = $('userChip'), queryInput = $('queryInput'),
     body = $('body'), chatInput = $('chatInput'), sendBtn = $('sendBtn'), scrollEl = $('scroll'),
-    cdEl = $('cooldown'), runBtn = $('runBtn'), home = $('home'), chat = $('chat'),
+    runBtn = $('runBtn'), home = $('home'), chat = $('chat'),
     sidebar = $('sidebar'), sideOverlay = $('sideOverlay'), sideList = $('sideList'),
     profileModal = $('profileModal'), pwdModal = $('pwdModal'), nameModal = $('nameModal'),
     proModal = $('proModal'), infoModal = $('infoModal'), limitModal = $('limitModal'),
     dlModal = $('dlModal');
   const views = { choose: $('vChoose'), signup: $('vSignup'), username: $('vUsername'), login: $('vLogin') };
+
+  /* ===== Headline rotation ===== */
+  const HEADLINES = ['Meet', 'Ask', 'Discover', 'Explore'];
+  function initHeadline(){
+    const pre = document.querySelector('.heading .pre');
+    if (!pre) return;
+    let idx = Math.floor(Math.random() * HEADLINES.length);
+    pre.textContent = HEADLINES[idx];
+    setInterval(() => {
+      pre.classList.add('fade');
+      setTimeout(() => {
+        idx = (idx + 1) % HEADLINES.length;
+        pre.textContent = HEADLINES[idx];
+        pre.classList.remove('fade');
+      }, 340);
+    }, 4200);
+  }
+  initHeadline();
+
+  /* ===== Unlimited users ===== */
+  const isUnlimited = () => currentUser?.email?.toLowerCase().trim() === UNLIMITED_EMAIL;
 
   /* ===== Config + auth ===== */
   async function loadConfig(){
@@ -1114,7 +1163,10 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
     currentChatId = null; body.innerHTML = ''; chatInput.value = ''; chatInput.style.height = 'auto';
     queryInput.value = ''; hideStatus(); clearRetry(); closeSide(); busy = false;
     if (cdTimer) { clearInterval(cdTimer); cdTimer = null; }
-    cdEnds = 0; setCd(0);
+    cdEnds = 0;
+    chatInput.disabled = false; queryInput.disabled = false;
+    chatInput.placeholder = PLACEHOLDER_CHAT;
+    queryInput.placeholder = PLACEHOLDER_HOME;
     [sendBtn, runBtn].forEach(b => { if (b) { b.disabled = false; b.classList.remove('cooldown','loading'); } });
     chat.classList.remove('active'); home.classList.remove('hidden'); document.body.classList.remove('in-chat');
   }
@@ -1158,7 +1210,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
     } catch { return { date: todayKey(), count: 0 }; }
   }
   const setUsage = u => { if (currentUser) try { localStorage.setItem(usageKey(), JSON.stringify(u)); } catch {} };
-  const remaining = () => Math.max(0, DAILY_LIMIT - getUsage().count);
+  const remaining = () => isUnlimited() ? Infinity : Math.max(0, DAILY_LIMIT - getUsage().count);
 
   function setUsageFromServer(used){
     if (typeof used !== 'number') return;
@@ -1166,8 +1218,20 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
   }
 
   function updateUsage(){
-    const block = $('usageBlock'), left = Math.max(0, DAILY_LIMIT - getUsage().count);
-    $('usageLeft').textContent = left;
+    const block = $('usageBlock'), leftEl = $('usageLeft');
+    const labelEl = block.querySelector('.usage-label');
+    block.classList.remove('warn','full','unlimited');
+    if (isUnlimited()){
+      leftEl.textContent = '∞';
+      if (labelEl) labelEl.textContent = 'unlimited';
+      block.classList.add('unlimited');
+      block.title = 'Unlimited reports';
+      return;
+    }
+    block.title = 'Reports left today';
+    if (labelEl) labelEl.textContent = 'left';
+    const left = Math.max(0, DAILY_LIMIT - getUsage().count);
+    leftEl.textContent = left;
     block.classList.toggle('warn', left === 1);
     block.classList.toggle('full', left === 0);
   }
@@ -1364,7 +1428,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
   });
 
   /* ===== Profile ===== */
-  const getPlan = () => (currentSession?.user?.user_metadata?.plan === 'pro' ? 'Pro' : 'Free');
+  const getPlan = () => isUnlimited() ? 'Unlimited' : (currentSession?.user?.user_metadata?.plan === 'pro' ? 'Pro' : 'Free');
 
   function updateProfile(){
     const name = getUsername(), email = currentUser ? currentUser.email : '', plan = getPlan();
@@ -1374,8 +1438,10 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
     $('fEmail').textContent = email;
     $('fPlan').textContent = plan;
     $('pAvatar').textContent = (name ? name.charAt(0) : email.charAt(0) || 'S').toUpperCase();
-    const b = $('pBadge'); b.textContent = plan; b.classList.toggle('pro', plan === 'Pro');
-    const u = $('upgradeFromProfile'); u.textContent = plan === 'Pro' ? 'Active' : 'Upgrade'; u.disabled = plan === 'Pro';
+    const b = $('pBadge'); b.textContent = plan; b.classList.toggle('pro', plan !== 'Free');
+    const u = $('upgradeFromProfile');
+    if (isUnlimited()) { u.textContent = 'Active'; u.disabled = true; }
+    else { u.textContent = plan === 'Pro' ? 'Active' : 'Upgrade'; u.disabled = plan === 'Pro'; }
   }
 
   const closeProfile = () => profileModal.classList.remove('active');
@@ -1481,7 +1547,10 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
     cdInterval = setInterval(tick, 1000);
   }
   const stopCountdown = () => { if (cdInterval) { clearInterval(cdInterval); cdInterval = null; } };
-  function showLimit(){ limitModal.classList.add('active'); startCountdown(); }
+  function showLimit(){
+    if (isUnlimited()) return;
+    limitModal.classList.add('active'); startCountdown();
+  }
   $('limitClose').addEventListener('click', () => { limitModal.classList.remove('active'); stopCountdown(); });
   limitModal.addEventListener('click', e => { if (e.target === limitModal) { limitModal.classList.remove('active'); stopCountdown(); } });
 
@@ -1584,7 +1653,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
 
   async function regenerate(userMsgEl, newText){
     if (busy) return;
-    if (remaining() <= 0) return showLimit();
+    if (!isUnlimited() && remaining() <= 0) return showLimit();
     let next = userMsgEl.nextElementSibling;
     while (next) { const r = next; next = next.nextElementSibling; r.remove(); }
 
@@ -1602,11 +1671,9 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
     busy = false; setGoDisabled(false); startCd();
   }
 
-  /* ----- Regenerate an assistant message (uses preceding user prompt) ----- */
   async function regenerateAssistant(assistantMsgEl, originalText, originalSources){
     if (busy) return;
-    if (remaining() <= 0) return showLimit();
-    // find preceding user message
+    if (!isUnlimited() && remaining() <= 0) return showLimit();
     let prev = assistantMsgEl.previousElementSibling;
     while (prev && !prev.classList.contains('user')) prev = prev.previousElementSibling;
     if (!prev) return;
@@ -1614,7 +1681,6 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
     if (!prompt) return;
     if (Date.now() < cdEnds) return;
 
-    // remove this assistant and all after
     let n = assistantMsgEl;
     while (n) { const r = n; n = n.nextElementSibling; r.remove(); }
 
@@ -1747,7 +1813,6 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
     return box;
   }
 
-  /* Build the action bar for assistant messages */
   function buildAssistantActions(text, sources, msgEl){
     const acts = document.createElement('div'); acts.className = 'actions';
     const copy = document.createElement('button'); copy.innerHTML = ICON_COPY; copy.title = 'Copy';
@@ -1832,7 +1897,6 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
     return (s || 'research').toLowerCase().replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-').slice(0, 50) || 'research';
   }
   function reportTitle(){
-    // Try to extract first heading, otherwise use first non-empty line
     const lines = (dlText || '').split('\n').map(l => l.trim()).filter(Boolean);
     if (!lines.length) return 'Scout Research Report';
     let t = lines[0].replace(/^\*\*|\*\*$/g, '').replace(/^#+\s*/, '');
@@ -1842,7 +1906,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
 
   function downloadMarkdown(){
     const title = reportTitle();
-    let md = `# ${title}\n\n> Generated by Scout AI — DarkNeuronAI\n> ${new Date().toLocaleString()}\n\n---\n\n${dlText}\n`;
+    let md = `# ${title}\n\n> Generated by Scout — DarkNeuronAI\n> ${new Date().toLocaleString()}\n\n---\n\n${dlText}\n`;
     if (dlSources.length){
       md += `\n---\n\n## Sources\n\n`;
       dlSources.forEach((s, i) => {
@@ -1894,7 +1958,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
       @media print{body{margin:0;max-width:none;padding:1.5cm}}
     </style></head><body>
       <h1>${esc(title)}</h1>
-      <div class="meta">Generated by <span class="brand">Scout AI</span> — DarkNeuronAI · ${esc(new Date().toLocaleString())}</div>
+      <div class="meta">Generated by <span class="brand">Scout</span> — DarkNeuronAI · ${esc(new Date().toLocaleString())}</div>
       ${html}
       ${sourcesHtml}
     </body></html>`);
@@ -1908,11 +1972,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
   $('dlMd').addEventListener('click', downloadMarkdown);
 
   /* ===== Cooldown ===== */
-  function setCd(ms){
-    if (!cdEl) return;
-    if (ms > 0){ cdEl.textContent = Math.ceil(ms / 1000) + 's'; cdEl.classList.add('show'); }
-    else { cdEl.classList.remove('show'); cdEl.textContent = ''; }
-  }
+  let lastShownSec = -1;
 
   function setGoDisabled(on){
     [sendBtn, runBtn].forEach(btn => {
@@ -1925,16 +1985,34 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
 
   function startCd(){
     cdEnds = Date.now() + CD_SEC * 1000;
+    lastShownSec = -1;
     [sendBtn, runBtn].forEach(b => { if (b){ b.disabled = true; b.classList.add('cooldown'); } });
-    setCd(CD_SEC * 1000);
+    // Disable inputs and show countdown in placeholder
+    chatInput.disabled = true;
+    queryInput.disabled = true;
+    // Initial placeholder update
+    const initMsg = `Next query in ${CD_SEC}s…`;
+    chatInput.placeholder = initMsg;
+    queryInput.placeholder = initMsg;
     if (cdTimer) clearInterval(cdTimer);
     cdTimer = setInterval(() => {
       const left = cdEnds - Date.now();
       if (left <= 0){
         clearInterval(cdTimer); cdTimer = null; cdEnds = 0;
-        setCd(0);
+        chatInput.disabled = false;
+        queryInput.disabled = false;
+        chatInput.placeholder = PLACEHOLDER_CHAT;
+        queryInput.placeholder = PLACEHOLDER_HOME;
         [sendBtn, runBtn].forEach(b => { if (b && !busy){ b.disabled = false; b.classList.remove('cooldown'); } });
-      } else setCd(left);
+      } else {
+        const s = Math.ceil(left / 1000);
+        if (s !== lastShownSec){
+          lastShownSec = s;
+          const msg = `Next query in ${s}s…`;
+          chatInput.placeholder = msg;
+          queryInput.placeholder = msg;
+        }
+      }
     }, 200);
   }
 
@@ -1999,7 +2077,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
 
   async function streamWithRetry(query, onStatus){
     if (requireSignin()) return null;
-    if (remaining() <= 0){ showLimit(); return null; }
+    if (!isUnlimited() && remaining() <= 0){ showLimit(); return null; }
     const token = await getToken();
     if (!token){ clearSession(); return null; }
 
@@ -2027,7 +2105,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
     if (requireSignin()) return;
     if (busy || !q.trim()) return queryInput.focus();
     if (Date.now() < cdEnds) return;
-    if (remaining() <= 0) return showLimit();
+    if (!isUnlimited() && remaining() <= 0) return showLimit();
 
     busy = true; runBtn.disabled = true; runBtn.classList.add('loading');
     body.innerHTML = '';
@@ -2052,7 +2130,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
     const q = chatInput.value.trim();
     if (!q || busy) return;
     if (Date.now() < cdEnds) return;
-    if (remaining() <= 0) return showLimit();
+    if (!isUnlimited() && remaining() <= 0) return showLimit();
 
     chatInput.value = ''; chatInput.style.height = 'auto';
     busy = true; sendBtn.disabled = true; sendBtn.classList.add('loading');
