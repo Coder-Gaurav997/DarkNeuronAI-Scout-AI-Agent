@@ -126,6 +126,8 @@ body.dark .bg .blob{background:radial-gradient(circle,#2a4a8a 0%,transparent 65%
 .pro-btn{background:var(--grad);background-size:200% 200%;animation:grad 9s ease infinite;color:#fff;border-color:rgba(255,255,255,.25);padding:0 1.05rem}
 .pro-btn:hover{color:#fff;border-color:rgba(255,255,255,.5)}
 body.in-chat .pro-btn{display:none}
+/* ==== Hide upgrade for the unlimited (special) account ==== */
+body.is-unlimited .pro-btn{display:none !important}
 
 .usage{
   height:32px;border-radius:16px;background:var(--chip);border:1.4px solid var(--chip-b);
@@ -529,40 +531,65 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
 }
 .foot strong{color:var(--sub);font-weight:600}
 
-/* Profile modal */
-.profile-m{max-width:440px;padding:2rem 1.9rem 1.5rem}
-.profile-head{display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border)}
+/* ===== Profile modal — wider, shorter, fully left-aligned ===== */
+.profile-m{
+  max-width:560px;width:100%;min-height:0;
+  padding:1.45rem 1.6rem 1.2rem;
+  text-align:left;
+}
+.profile-head{
+  display:flex;align-items:center;gap:.85rem;
+  margin-bottom:1rem;padding-bottom:.9rem;border-bottom:1px solid var(--border);
+  text-align:left;
+}
 .profile-av{
-  width:64px;height:64px;border-radius:50%;flex-shrink:0;background:var(--grad);
+  width:52px;height:52px;border-radius:50%;flex-shrink:0;background:var(--grad);
   background-size:200% 200%;animation:grad 8s ease infinite;display:flex;align-items:center;justify-content:center;
-  color:#fff;font-weight:800;font-size:1.6rem;border:2px solid rgba(255,255,255,.28);
+  color:#fff;font-weight:800;font-size:1.2rem;border:2px solid rgba(255,255,255,.28);
   box-shadow:0 2px 10px rgba(106,27,154,.22);
 }
 .profile-info{flex:1;min-width:0;text-align:left}
-.profile-name{font-size:1.15rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:.5rem}
-.profile-email{font-size:.8rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.profile-name{
+  font-size:1.02rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.18rem;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  display:flex;align-items:center;gap:.5rem;justify-content:flex-start;text-align:left;
+}
+.profile-email{
+  font-size:.76rem;color:var(--muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left;
+}
 .badge{
-  font-size:.62rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
-  padding:.18rem .5rem;border-radius:20px;background:var(--bg);border:1px solid var(--border);
+  font-size:.6rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  padding:.16rem .48rem;border-radius:20px;background:var(--bg);border:1px solid var(--border);
   color:var(--muted);flex-shrink:0;
 }
 .badge.pro{background:var(--grad);background-size:200% 200%;animation:grad 8s ease infinite;color:#fff;border-color:transparent}
 
-.fields{display:flex;flex-direction:column;gap:.85rem}
-.field{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:.7rem .95rem}
-.field-label{font-size:.68rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:.3rem}
+.fields{display:flex;flex-direction:column;gap:.55rem}
+.field{
+  background:var(--bg);border:1px solid var(--border);border-radius:11px;
+  padding:.55rem .85rem;text-align:left;
+}
+.field-label{
+  font-size:.62rem;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:.18rem;text-align:left;
+}
 .field-row{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
-.field-val{font-size:.9rem;color:var(--text);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.field-val{
+  font-size:.86rem;color:var(--text);font-weight:500;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  flex:1;min-width:0;text-align:left;
+}
 .mini-btn{
   flex-shrink:0;background:transparent;border:1px solid var(--border);color:var(--text);
-  font:600 .72rem/1 'Inter',sans-serif;padding:.35rem .7rem;border-radius:20px;cursor:pointer;
+  font:600 .7rem/1 'Inter',sans-serif;padding:.32rem .68rem;border-radius:20px;cursor:pointer;
   transition:all var(--t);
 }
 .mini-btn:hover{border-color:var(--text);transform:translateY(-1px)}
 .mini-btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
 
-.p-actions{display:flex;flex-direction:column;gap:.5rem;margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--border)}
-.p-btn{width:100%;padding:.8rem 1.2rem;border-radius:30px;font:700 .88rem/1 'Inter',sans-serif;letter-spacing:.01em;cursor:pointer;transition:all var(--t)}
+.p-actions{display:flex;flex-direction:column;gap:.45rem;margin-top:1.05rem;padding-top:.95rem;border-top:1px solid var(--border)}
+.p-btn{width:100%;padding:.7rem 1.1rem;border-radius:30px;font:700 .86rem/1 'Inter',sans-serif;letter-spacing:.01em;cursor:pointer;transition:all var(--t)}
 .p-btn.outline{background:transparent;color:var(--text);border:1.5px solid var(--border)}
 .p-btn.outline:hover{border-color:var(--text);transform:translateY(-1px)}
 .p-btn.danger{background:transparent;color:#dc2626;border:1.5px solid rgba(220,38,38,.35)}
@@ -626,18 +653,18 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
   margin-top:1.35rem;padding:1rem 1.1rem;border-top:1px solid var(--border);
   display:flex;align-items:center;gap:.85rem;
   background:linear-gradient(135deg,rgba(160,32,160,.06),rgba(141,36,170,.06));
-  border-radius:14px;border:1px solid var(--border);border-top:1px solid var(--border);
-}
-.founder-avatar{
-  width:44px;height:44px;border-radius:50%;flex-shrink:0;
-  background:var(--grad);background-size:200% 200%;animation:grad 8s ease infinite;
-  display:flex;align-items:center;justify-content:center;
-  color:#fff;font-weight:800;font-size:.95rem;letter-spacing:.02em;
-  box-shadow:0 3px 12px rgba(106,27,154,.28);
+  border-radius:14px;border:1px solid var(--border);
+  text-align:left;
 }
 .founder-info{flex:1;min-width:0;text-align:left}
 .founder-info strong{display:block;font-size:.92rem;font-weight:800;color:var(--text);margin-bottom:.15rem}
-.founder-info span{font-size:.76rem;color:var(--muted);line-height:1.4}
+.founder-info span{display:block;font-size:.76rem;color:var(--muted);line-height:1.45}
+.founder-info span.founder-credit{
+  margin-top:.45rem;font-weight:700;letter-spacing:.02em;
+  background:var(--grad);background-size:200% 200%;
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  animation:grad 8s ease infinite;
+}
 .close-x{
   position:absolute;top:1.1rem;right:1.1rem;width:36px;height:36px;border-radius:50%;
   background:transparent;border:1.5px solid var(--border);color:var(--text);
@@ -727,9 +754,12 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
   .modal{padding:1.75rem 1.4rem 1.5rem;border-radius:22px;min-height:0}
   .view h2{font-size:1.25rem}
   .modal-logo{width:72px;height:72px;margin-bottom:.9rem}
-  .profile-av{width:54px;height:54px;font-size:1.35rem}
-  .profile-name{font-size:1.05rem}
-  .profile-m{padding:1.6rem 1.3rem 1.3rem}
+  .profile-av{width:46px;height:46px;font-size:1.1rem}
+  .profile-name{font-size:.96rem}
+  .profile-email{font-size:.72rem}
+  .profile-m{padding:1.3rem 1.1rem 1.1rem;max-width:100%}
+  .field{padding:.5rem .72rem}
+  .field-val{font-size:.82rem}
   .sidebar{width:290px}
   .pro-m{padding:1.3rem 1.2rem 1.1rem;border-radius:18px}
   .pro-m h2{font-size:1.12rem}
@@ -741,7 +771,6 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
   .info-m h2{font-size:1.15rem}
   .info-m p{font-size:.88rem}
   .founder-card{padding:.85rem .9rem;gap:.7rem}
-  .founder-avatar{width:38px;height:38px;font-size:.85rem}
   .founder-info strong{font-size:.86rem}
   .founder-info span{font-size:.7rem}
   .dl-grid{grid-template-columns:1fr 1fr;gap:.5rem}
@@ -842,7 +871,6 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
 
     <div class="credit">
       <p>From the Innovation Labs of <strong>DarkNeuronAI</strong></p>
-      <p>Designed &amp; Developed by <strong>Gaurav Pandey</strong></p>
     </div>
   </div>
 </div>
@@ -1048,10 +1076,10 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
     <p><strong>Scout</strong> is an autonomous research agent that retrieves, refines, and synthesizes information from across the open web. It runs a multi-stage pipeline — semantic extraction, relevance filtering, and structured report composition — to deliver accurate, citation-backed briefs on demand.</p>
     <p>Powered by <strong>specialized language models</strong> tuned for research workflows, Scout works with minimal supervision, turning a single query into a comprehensive brief in seconds.</p>
     <div class="founder-card">
-      <div class="founder-avatar">GP</div>
       <div class="founder-info">
         <strong>Gaurav Pandey</strong>
         <span>Founder &amp; Chief AI Officer — DarkNeuronAI</span>
+        <span class="founder-credit">Designed &amp; Developed by Gaurav Pandey</span>
       </div>
     </div>
   </div>
@@ -1098,26 +1126,24 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
     dlModal = $('dlModal');
   const views = { choose: $('vChoose'), signup: $('vSignup'), username: $('vUsername'), login: $('vLogin') };
 
-  /* ===== Headline rotation ===== */
+  /* ===== Headline: random word on every page load (no rotation) ===== */
   const HEADLINES = ['Meet', 'Ask', 'Discover', 'Explore'];
   function initHeadline(){
     const pre = document.querySelector('.heading .pre');
     if (!pre) return;
-    let idx = Math.floor(Math.random() * HEADLINES.length);
-    pre.textContent = HEADLINES[idx];
-    setInterval(() => {
-      pre.classList.add('fade');
-      setTimeout(() => {
-        idx = (idx + 1) % HEADLINES.length;
-        pre.textContent = HEADLINES[idx];
-        pre.classList.remove('fade');
-      }, 340);
-    }, 4200);
+    pre.classList.remove('fade');
+    pre.textContent = HEADLINES[Math.floor(Math.random() * HEADLINES.length)];
   }
   initHeadline();
 
-  /* ===== Unlimited users ===== */
-  const isUnlimited = () => currentUser?.email?.toLowerCase().trim() === UNLIMITED_EMAIL;
+  /* ===== Unlimited (special) account ===== */
+  const isUnlimited = () => {
+    const e = (currentUser && currentUser.email ? currentUser.email : '').toLowerCase().trim();
+    return e === UNLIMITED_EMAIL;
+  };
+  function applyUnlimitedClass(){
+    document.body.classList.toggle('is-unlimited', isUnlimited());
+  }
 
   /* ===== Config + auth ===== */
   async function loadConfig(){
@@ -1188,6 +1214,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
   }
 
   function updateChip(){
+    applyUnlimitedClass();
     if (currentUser?.email) {
       const n = getUsername();
       userChip.textContent = (n ? n.charAt(0) : currentUser.email.charAt(0) || '?').toUpperCase();
@@ -1214,6 +1241,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
 
   function setUsageFromServer(used){
     if (typeof used !== 'number') return;
+    if (isUnlimited()) return;              /* special account is never counted */
     setUsage({ date: todayKey(), count: used }); updateUsage();
   }
 
@@ -1237,6 +1265,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
   }
 
   async function syncUsage(){
+    if (isUnlimited()) { updateUsage(); return; }   /* never sync limits for the special account */
     const token = await getToken(); if (!token) return;
     try {
       const r = await fetch('/api/usage', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${token}` } });
@@ -1440,15 +1469,25 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
     $('pAvatar').textContent = (name ? name.charAt(0) : email.charAt(0) || 'S').toUpperCase();
     const b = $('pBadge'); b.textContent = plan; b.classList.toggle('pro', plan !== 'Free');
     const u = $('upgradeFromProfile');
-    if (isUnlimited()) { u.textContent = 'Active'; u.disabled = true; }
-    else { u.textContent = plan === 'Pro' ? 'Active' : 'Upgrade'; u.disabled = plan === 'Pro'; }
+    /* Hide the Upgrade button completely for the unlimited (special) account */
+    if (isUnlimited()){
+      u.style.display = 'none';
+      u.disabled = true;
+    } else {
+      u.style.display = '';
+      u.textContent = plan === 'Pro' ? 'Active' : 'Upgrade';
+      u.disabled = plan === 'Pro';
+    }
   }
 
   const closeProfile = () => profileModal.classList.remove('active');
   userChip.addEventListener('click', () => { if (currentUser) { updateProfile(); profileModal.classList.add('active'); } });
   $('profileClose').addEventListener('click', closeProfile);
   profileModal.addEventListener('click', e => { if (e.target === profileModal) closeProfile(); });
-  $('upgradeFromProfile').addEventListener('click', () => { closeProfile(); proModal.classList.add('active'); });
+  $('upgradeFromProfile').addEventListener('click', () => {
+    if (isUnlimited()) return;
+    closeProfile(); proModal.classList.add('active');
+  });
 
   $('editName').addEventListener('click', () => {
     closeProfile(); $('nameInput').value = getUsername(); $('nameErr').textContent = '';
@@ -1519,7 +1558,10 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
   });
 
   /* ===== Pro / Info / Limit ===== */
-  $('proBtn').addEventListener('click', () => proModal.classList.add('active'));
+  $('proBtn').addEventListener('click', () => {
+    if (isUnlimited()) return;
+    proModal.classList.add('active');
+  });
   $('proClose').addEventListener('click', () => proModal.classList.remove('active'));
   proModal.addEventListener('click', e => { if (e.target === proModal) proModal.classList.remove('active'); });
   $('notifyBtn').addEventListener('click', () => {
@@ -1548,7 +1590,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
   }
   const stopCountdown = () => { if (cdInterval) { clearInterval(cdInterval); cdInterval = null; } };
   function showLimit(){
-    if (isUnlimited()) return;
+    if (isUnlimited()) return;      /* never block the special account */
     limitModal.classList.add('active'); startCountdown();
   }
   $('limitClose').addEventListener('click', () => { limitModal.classList.remove('active'); stopCountdown(); });
@@ -1984,13 +2026,22 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
   }
 
   function startCd(){
+    /* ===== Special (unlimited) account: NO cooldown at all ===== */
+    if (isUnlimited()){
+      cdEnds = 0;
+      if (cdTimer) { clearInterval(cdTimer); cdTimer = null; }
+      chatInput.disabled = false; queryInput.disabled = false;
+      chatInput.placeholder = PLACEHOLDER_CHAT;
+      queryInput.placeholder = PLACEHOLDER_HOME;
+      [sendBtn, runBtn].forEach(b => { if (b && !busy){ b.disabled = false; b.classList.remove('cooldown'); } });
+      return;
+    }
+
     cdEnds = Date.now() + CD_SEC * 1000;
     lastShownSec = -1;
     [sendBtn, runBtn].forEach(b => { if (b){ b.disabled = true; b.classList.add('cooldown'); } });
-    // Disable inputs and show countdown in placeholder
     chatInput.disabled = true;
     queryInput.disabled = true;
-    // Initial placeholder update
     const initMsg = `Next query in ${CD_SEC}s…`;
     chatInput.placeholder = initMsg;
     queryInput.placeholder = initMsg;
@@ -2077,6 +2128,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
 
   async function streamWithRetry(query, onStatus){
     if (requireSignin()) return null;
+    /* ===== Special account: never blocked by the local daily limit ===== */
     if (!isUnlimited() && remaining() <= 0){ showLimit(); return null; }
     const token = await getToken();
     if (!token){ clearSession(); return null; }
@@ -2085,10 +2137,23 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
       const r = await streamOnce(query, onStatus, token);
       if (r.ok){ clearRetry(); return r; }
       if (r.error === 'unauthorized'){ try { await sb.auth.signOut(); } catch {} clearSession(); return null; }
+
       if (r.error === 'rateLimited'){
+        if (isUnlimited()){
+          /* The special account should never see the "limit" modal.
+             Treat a server rate-limit as transient and retry. */
+          if (i < MAX_RETRIES){
+            showRetry(`Server is busy — retrying… (Attempt ${i + 1} of ${MAX_RETRIES})`);
+            await sleep(RETRY_MS);
+            continue;
+          }
+          showRetry('The research server is temporarily rate-limiting requests. Please try again in a moment.');
+          return null;
+        }
         if (typeof r.used === 'number') setUsageFromServer(r.used);
         showLimit(); clearRetry(); return null;
       }
+
       if (i < MAX_RETRIES){
         showRetry(`An error occurred — retrying… (Attempt ${i + 1} of ${MAX_RETRIES})`);
         await sleep(RETRY_MS);
@@ -2121,7 +2186,9 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
         if (sid) await saveMsg(sid, 'assistant', result.report, result.sources);
       }
     } finally {
-      busy = false; runBtn.classList.remove('loading'); runBtn.disabled = false; startCd();
+      busy = false; runBtn.classList.remove('loading');
+      if (!isUnlimited()) runBtn.disabled = false;
+      startCd();
     }
   }
 
@@ -2146,7 +2213,9 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
         if (sid) await saveMsg(sid, 'assistant', result.report, result.sources);
       }
     } finally {
-      busy = false; sendBtn.classList.remove('loading'); sendBtn.disabled = false; startCd();
+      busy = false; sendBtn.classList.remove('loading');
+      if (!isUnlimited()) sendBtn.disabled = false;
+      startCd();
     }
   }
 
