@@ -126,8 +126,6 @@ body.dark .bg .blob{background:radial-gradient(circle,#2a4a8a 0%,transparent 65%
 .pro-btn{background:var(--grad);background-size:200% 200%;animation:grad 9s ease infinite;color:#fff;border-color:rgba(255,255,255,.25);padding:0 1.05rem}
 .pro-btn:hover{color:#fff;border-color:rgba(255,255,255,.5)}
 body.in-chat .pro-btn{display:none}
-/* ==== Hide upgrade for the unlimited (special) account ==== */
-body.is-unlimited .pro-btn{display:none !important}
 
 .usage{
   height:32px;border-radius:16px;background:var(--chip);border:1.4px solid var(--chip-b);
@@ -139,12 +137,6 @@ body.is-unlimited .pro-btn{display:none !important}
 .usage.full .dot{background:#ef4444;box-shadow:0 0 0 2px rgba(239,68,68,.2)}
 .usage strong{font:800 .78rem/1 'Inter',sans-serif;font-variant-numeric:tabular-nums}
 .usage .usage-label{font:600 .68rem/1 'Inter',sans-serif;color:var(--muted);letter-spacing:.02em}
-.usage.unlimited .dot{background:var(--grad);background-size:200% 200%;animation:grad 4s ease infinite;box-shadow:0 0 0 2px rgba(160,32,160,.22)}
-.usage.unlimited strong{
-  font-size:1rem;font-weight:900;
-  background:var(--grad);background-size:200% 200%;animation:grad 6s ease infinite;
-  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-}
 
 .icon-btn,.user-chip{
   width:42px;height:42px;border-radius:50%;background:var(--chip);border:1.4px solid var(--chip-b);
@@ -713,7 +705,6 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
   .usage{height:30px;border-radius:15px;padding:0 .55rem;gap:.3rem}
   .usage .usage-label{display:none}
   .usage strong{font-size:.72rem}
-  .usage.unlimited strong{font-size:.9rem}
   .icon-btn,.user-chip{width:38px;height:38px}
   .icon-btn svg{width:17px;height:17px}
   .user-chip{font-size:.9rem}
@@ -1107,7 +1098,6 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
 (() => {
   'use strict';
   const DAILY_LIMIT = 3;
-  const UNLIMITED_EMAIL = 'golupandey95207@gmail.com';
   const API = '/api/research', CD_SEC = 10, MAX_RETRIES = 3, RETRY_MS = 1500;
   const PLACEHOLDER_HOME = 'Ask Scout anything…';
   const PLACEHOLDER_CHAT = 'Continue the research…';
@@ -1135,15 +1125,6 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
     pre.textContent = HEADLINES[Math.floor(Math.random() * HEADLINES.length)];
   }
   initHeadline();
-
-  /* ===== Unlimited (special) account ===== */
-  const isUnlimited = () => {
-    const e = (currentUser && currentUser.email ? currentUser.email : '').toLowerCase().trim();
-    return e === UNLIMITED_EMAIL;
-  };
-  function applyUnlimitedClass(){
-    document.body.classList.toggle('is-unlimited', isUnlimited());
-  }
 
   /* ===== Config + auth ===== */
   async function loadConfig(){
@@ -1214,7 +1195,6 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
   }
 
   function updateChip(){
-    applyUnlimitedClass();
     if (currentUser?.email) {
       const n = getUsername();
       userChip.textContent = (n ? n.charAt(0) : currentUser.email.charAt(0) || '?').toUpperCase();
@@ -1237,25 +1217,17 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
     } catch { return { date: todayKey(), count: 0 }; }
   }
   const setUsage = u => { if (currentUser) try { localStorage.setItem(usageKey(), JSON.stringify(u)); } catch {} };
-  const remaining = () => isUnlimited() ? Infinity : Math.max(0, DAILY_LIMIT - getUsage().count);
+  const remaining = () => Math.max(0, DAILY_LIMIT - getUsage().count);
 
   function setUsageFromServer(used){
     if (typeof used !== 'number') return;
-    if (isUnlimited()) return;              /* special account is never counted */
     setUsage({ date: todayKey(), count: used }); updateUsage();
   }
 
   function updateUsage(){
     const block = $('usageBlock'), leftEl = $('usageLeft');
     const labelEl = block.querySelector('.usage-label');
-    block.classList.remove('warn','full','unlimited');
-    if (isUnlimited()){
-      leftEl.textContent = '∞';
-      if (labelEl) labelEl.textContent = 'unlimited';
-      block.classList.add('unlimited');
-      block.title = 'Unlimited reports';
-      return;
-    }
+    block.classList.remove('warn','full');
     block.title = 'Reports left today';
     if (labelEl) labelEl.textContent = 'left';
     const left = Math.max(0, DAILY_LIMIT - getUsage().count);
@@ -1265,7 +1237,6 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
   }
 
   async function syncUsage(){
-    if (isUnlimited()) { updateUsage(); return; }   /* never sync limits for the special account */
     const token = await getToken(); if (!token) return;
     try {
       const r = await fetch('/api/usage', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${token}` } });
@@ -1457,7 +1428,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
   });
 
   /* ===== Profile ===== */
-  const getPlan = () => isUnlimited() ? 'Unlimited' : (currentSession?.user?.user_metadata?.plan === 'pro' ? 'Pro' : 'Free');
+  const getPlan = () => currentSession?.user?.user_metadata?.plan === 'pro' ? 'Pro' : 'Free';
 
   function updateProfile(){
     const name = getUsername(), email = currentUser ? currentUser.email : '', plan = getPlan();
@@ -1469,25 +1440,16 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
     $('pAvatar').textContent = (name ? name.charAt(0) : email.charAt(0) || 'S').toUpperCase();
     const b = $('pBadge'); b.textContent = plan; b.classList.toggle('pro', plan !== 'Free');
     const u = $('upgradeFromProfile');
-    /* Hide the Upgrade button completely for the unlimited (special) account */
-    if (isUnlimited()){
-      u.style.display = 'none';
-      u.disabled = true;
-    } else {
-      u.style.display = '';
-      u.textContent = plan === 'Pro' ? 'Active' : 'Upgrade';
-      u.disabled = plan === 'Pro';
-    }
+    u.style.display = '';
+    u.textContent = plan === 'Pro' ? 'Active' : 'Upgrade';
+    u.disabled = plan === 'Pro';
   }
 
   const closeProfile = () => profileModal.classList.remove('active');
   userChip.addEventListener('click', () => { if (currentUser) { updateProfile(); profileModal.classList.add('active'); } });
   $('profileClose').addEventListener('click', closeProfile);
   profileModal.addEventListener('click', e => { if (e.target === profileModal) closeProfile(); });
-  $('upgradeFromProfile').addEventListener('click', () => {
-    if (isUnlimited()) return;
-    closeProfile(); proModal.classList.add('active');
-  });
+  $('upgradeFromProfile').addEventListener('click', () => { closeProfile(); proModal.classList.add('active'); });
 
   $('editName').addEventListener('click', () => {
     closeProfile(); $('nameInput').value = getUsername(); $('nameErr').textContent = '';
@@ -1558,10 +1520,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
   });
 
   /* ===== Pro / Info / Limit ===== */
-  $('proBtn').addEventListener('click', () => {
-    if (isUnlimited()) return;
-    proModal.classList.add('active');
-  });
+  $('proBtn').addEventListener('click', () => proModal.classList.add('active'));
   $('proClose').addEventListener('click', () => proModal.classList.remove('active'));
   proModal.addEventListener('click', e => { if (e.target === proModal) proModal.classList.remove('active'); });
   $('notifyBtn').addEventListener('click', () => {
@@ -1590,7 +1549,6 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
   }
   const stopCountdown = () => { if (cdInterval) { clearInterval(cdInterval); cdInterval = null; } };
   function showLimit(){
-    if (isUnlimited()) return;      /* never block the special account */
     limitModal.classList.add('active'); startCountdown();
   }
   $('limitClose').addEventListener('click', () => { limitModal.classList.remove('active'); stopCountdown(); });
@@ -1695,7 +1653,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
 
   async function regenerate(userMsgEl, newText){
     if (busy) return;
-    if (!isUnlimited() && remaining() <= 0) return showLimit();
+    if (remaining() <= 0) return showLimit();
     let next = userMsgEl.nextElementSibling;
     while (next) { const r = next; next = next.nextElementSibling; r.remove(); }
 
@@ -1715,7 +1673,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
 
   async function regenerateAssistant(assistantMsgEl, originalText, originalSources){
     if (busy) return;
-    if (!isUnlimited() && remaining() <= 0) return showLimit();
+    if (remaining() <= 0) return showLimit();
     let prev = assistantMsgEl.previousElementSibling;
     while (prev && !prev.classList.contains('user')) prev = prev.previousElementSibling;
     if (!prev) return;
@@ -2026,17 +1984,6 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
   }
 
   function startCd(){
-    /* ===== Special (unlimited) account: NO cooldown at all ===== */
-    if (isUnlimited()){
-      cdEnds = 0;
-      if (cdTimer) { clearInterval(cdTimer); cdTimer = null; }
-      chatInput.disabled = false; queryInput.disabled = false;
-      chatInput.placeholder = PLACEHOLDER_CHAT;
-      queryInput.placeholder = PLACEHOLDER_HOME;
-      [sendBtn, runBtn].forEach(b => { if (b && !busy){ b.disabled = false; b.classList.remove('cooldown'); } });
-      return;
-    }
-
     cdEnds = Date.now() + CD_SEC * 1000;
     lastShownSec = -1;
     [sendBtn, runBtn].forEach(b => { if (b){ b.disabled = true; b.classList.add('cooldown'); } });
@@ -2128,8 +2075,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
 
   async function streamWithRetry(query, onStatus){
     if (requireSignin()) return null;
-    /* ===== Special account: never blocked by the local daily limit ===== */
-    if (!isUnlimited() && remaining() <= 0){ showLimit(); return null; }
+    if (remaining() <= 0){ showLimit(); return null; }
     const token = await getToken();
     if (!token){ clearSession(); return null; }
 
@@ -2137,23 +2083,10 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
       const r = await streamOnce(query, onStatus, token);
       if (r.ok){ clearRetry(); return r; }
       if (r.error === 'unauthorized'){ try { await sb.auth.signOut(); } catch {} clearSession(); return null; }
-
       if (r.error === 'rateLimited'){
-        if (isUnlimited()){
-          /* The special account should never see the "limit" modal.
-             Treat a server rate-limit as transient and retry. */
-          if (i < MAX_RETRIES){
-            showRetry(`Server is busy — retrying… (Attempt ${i + 1} of ${MAX_RETRIES})`);
-            await sleep(RETRY_MS);
-            continue;
-          }
-          showRetry('The research server is temporarily rate-limiting requests. Please try again in a moment.');
-          return null;
-        }
         if (typeof r.used === 'number') setUsageFromServer(r.used);
         showLimit(); clearRetry(); return null;
       }
-
       if (i < MAX_RETRIES){
         showRetry(`An error occurred — retrying… (Attempt ${i + 1} of ${MAX_RETRIES})`);
         await sleep(RETRY_MS);
@@ -2170,7 +2103,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
     if (requireSignin()) return;
     if (busy || !q.trim()) return queryInput.focus();
     if (Date.now() < cdEnds) return;
-    if (!isUnlimited() && remaining() <= 0) return showLimit();
+    if (remaining() <= 0) return showLimit();
 
     busy = true; runBtn.disabled = true; runBtn.classList.add('loading');
     body.innerHTML = '';
@@ -2186,9 +2119,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
         if (sid) await saveMsg(sid, 'assistant', result.report, result.sources);
       }
     } finally {
-      busy = false; runBtn.classList.remove('loading');
-      if (!isUnlimited()) runBtn.disabled = false;
-      startCd();
+      busy = false; runBtn.classList.remove('loading'); runBtn.disabled = false; startCd();
     }
   }
 
@@ -2197,7 +2128,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
     const q = chatInput.value.trim();
     if (!q || busy) return;
     if (Date.now() < cdEnds) return;
-    if (!isUnlimited() && remaining() <= 0) return showLimit();
+    if (remaining() <= 0) return showLimit();
 
     chatInput.value = ''; chatInput.style.height = 'auto';
     busy = true; sendBtn.disabled = true; sendBtn.classList.add('loading');
@@ -2213,9 +2144,7 @@ body.dark .form input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.06)}
         if (sid) await saveMsg(sid, 'assistant', result.report, result.sources);
       }
     } finally {
-      busy = false; sendBtn.classList.remove('loading');
-      if (!isUnlimited()) sendBtn.disabled = false;
-      startCd();
+      busy = false; sendBtn.classList.remove('loading'); sendBtn.disabled = false; startCd();
     }
   }
 
